@@ -1,3 +1,4 @@
+// controllers/validateLicense.ts
 import { Request, Response } from "express";
 import { License, Status } from "../models/License";
 
@@ -5,15 +6,17 @@ export const validateLicense = async (req: Request, res: Response) => {
   try {
     const { key } = req.query;
 
+    // ❌ No key provided
     if (!key) {
-      return res
-        .status(400)
-        .json({ valid: false, message: "License key is required" });
+      return res.status(400).json({
+        valid: false,
+        message: "License key is required",
+      });
     }
 
+    // 🔎 Check if key exists
     const license = await License.findOne({ key });
 
-    // ❌ No license found
     if (!license) {
       return res.json({
         valid: false,
@@ -31,24 +34,33 @@ export const validateLicense = async (req: Request, res: Response) => {
       });
     }
 
-    // ❌ Expired
-    const now = new Date();
-    if (now > license.expiresAt) {
+    // ❌ Expired (status set by cron job)
+    if (license.status === Status.EXPIRED) {
       return res.json({
         valid: false,
         status: "expired",
         message: "License has expired",
+        expiresAt: license.expiresAt,
       });
     }
 
-    // ✅ Valid license
+    // 🟢 Valid and Active
+    if (license.status === Status.ACTIVE) {
+      return res.json({
+        valid: true,
+        status: "active",
+        productName: license.productName,
+        customer: license.customer,
+        duration: `${license.duration} months`,
+        expiresAt: license.expiresAt,
+      });
+    }
+
+    // 🌀 Unknown/Unexpected status
     return res.json({
-      valid: true,
-      status: "active",
-      productName: license.productName,
-      customer: license.customer,
-      duration: `${license.duration} months`,
-      expiresAt: license.expiresAt,
+      valid: false,
+      status: "unknown",
+      message: "Unknown license status",
     });
   } catch (error) {
     return res.status(500).json({

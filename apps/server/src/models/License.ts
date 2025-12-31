@@ -10,7 +10,7 @@ export interface LicenseType {
   key: string;
   productName: string;
   customer: string;
-  duration: number; // in months
+  duration: number;
   issuedAt: Date;
   expiresAt: Date;
   status: Status;

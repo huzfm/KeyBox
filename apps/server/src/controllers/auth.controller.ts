@@ -98,3 +98,42 @@ export const login = async (req: Request<LoginBody>, res: Response) => {
     });
   }
 };
+
+export const getAllUsers = async (_req: Request, res: Response) => {
+  try {
+    const users = await User.find().select("-password_hash");
+    return res.json({
+      users,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Failed to retrieve users",
+
+      error: (error as Error).message,
+    });
+  }
+};
+
+export const editUser = async (req: Request, res: Response) => {
+  const userId = req.params.id;
+  const { name, email, role, company_name } = req.body;
+  try {
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { name, email, role, company_name },
+      { new: true }
+    ).select("-password_hash");
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    return res.json({
+      message: "User updated successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Failed to update user",
+      error: (error as Error).message,
+    });
+  }
+};

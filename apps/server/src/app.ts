@@ -7,6 +7,7 @@ import cors from "cors";
 import auth from "./routes/auth.routes";
 import { createLicense } from "./controllers/license.controller";
 import validateLicense from "./routes/validate.route";
+import "./utils/expireLicenses";
 dotenv.config();
 
 const app: Express = express();
@@ -31,6 +32,7 @@ const MONGO_URI: string =
 mongoose
   .connect(MONGO_URI)
   .then(() => console.log(" Connected to MongoDB"))
+
   .catch((error: Error) => {
     console.error("❌ MongoDB connection error:", error.message);
     process.exit(1);
