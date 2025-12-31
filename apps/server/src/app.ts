@@ -1,4 +1,4 @@
-import express, { Express, Request, Response, NextFunction } from "express";
+import express, { Express, Request, Response } from "express";
 import morgan from "morgan";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
@@ -38,8 +38,6 @@ mongoose
     process.exit(1);
   });
 
-// ===== ROUTES =====
-
 app.get("/", (_req: Request, res: Response) =>
   res.json({
     message: "Node mongo express server is running",
@@ -48,7 +46,6 @@ app.get("/", (_req: Request, res: Response) =>
   })
 );
 
-// ===== START SERVER =====
 const PORT: number = parseInt(process.env.PORT || "3000", 10);
 app.listen(PORT, () => {
   console.log(
