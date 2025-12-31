@@ -1,21 +1,53 @@
-import express from "express";
-import dotenv from "dotenv";
+import express, { Express, Request, Response, NextFunction } from "express";
 import morgan from "morgan";
-import userRoutes from "./routes/userRoutes";
-
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import helmet from "helmet";
+import cors from "cors";
+import auth from "./routes/auth.routes";
 dotenv.config();
 
-const app = express();
+const app: Express = express();
+
 app.use(express.json());
 app.use(morgan("dev"));
+app.use(helmet());
+app.use(
+  cors({
+    origin: "*", // Adjust this in production to restrict origins
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  })
+);
 
-app.use("/api", userRoutes);
+app.use("/auth", auth);
+// ===== DATABASE CONNECTION =====
+const MONGO_URI: string =
+  process.env.MONGO_URI || "mongodb://localhost:27017/your_database";
 
-app.get("/", (req, res) => {
-res.json({ message: "Node PostgreSQL Typescript is running " });
-});
+mongoose
+  .connect(MONGO_URI)
+  .then(() => console.log(" Connected to MongoDB"))
+  .catch((error: Error) => {
+    console.error("❌ MongoDB connection error:", error.message);
+    process.exit(1);
+  });
 
-const PORT = process.env.PORT || 3000;
+// ===== ROUTES =====
+
+app.get("/", (_req: Request, res: Response) =>
+  res.json({
+    message: "Node mongo express server is running",
+    success: true,
+    time: new Date().toISOString(),
+  })
+);
+
+// ===== START SERVER =====
+const PORT: number = parseInt(process.env.PORT || "3000", 10);
 app.listen(PORT, () => {
-console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(
+    ` Server running in ${
+      process.env.NODE_ENV || "development"
+    } mode on port ${PORT}`
+  );
 });
