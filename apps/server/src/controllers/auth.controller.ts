@@ -19,16 +19,22 @@ export const signup = async (req: Request<SignupBody>, res: Response) => {
     const { name, email, password, confirm_password } = req.body;
 
     if (!name || !email || !password || !confirm_password) {
-      return res.status(400).json({ message: "All fields are required" });
+      return res.status(400).json({
+        message: "All fields are required",
+      });
     }
 
     if (password !== confirm_password) {
-      return res.status(400).json({ message: "Passwords do not match" });
+      return res.status(400).json({
+        message: "Passwords do not match",
+      });
     }
 
     const alreadyExists = await User.findOne({ email });
     if (alreadyExists) {
-      return res.status(400).json({ message: "Email already registered" });
+      return res.status(400).json({
+        message: "Email already registered",
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -57,10 +63,16 @@ export const login = async (req: Request<LoginBody>, res: Response) => {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user)
+      return res.status(404).json({
+        error: "User not found",
+      });
 
     const match = await bcrypt.compare(password, user.password_hash);
-    if (!match) return res.status(400).json({ error: "Invalid credentials" });
+    if (!match)
+      return res.status(400).json({
+        error: "Invalid credentials",
+      });
 
     const token = jwt.sign(
       {

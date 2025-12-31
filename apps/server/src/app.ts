@@ -5,6 +5,8 @@ import dotenv from "dotenv";
 import helmet from "helmet";
 import cors from "cors";
 import auth from "./routes/auth.routes";
+import { createLicense } from "./controllers/license.controller";
+import validateLicense from "./routes/validate.route";
 dotenv.config();
 
 const app: Express = express();
@@ -20,7 +22,9 @@ app.use(
 );
 
 app.use("/auth", auth);
-// ===== DATABASE CONNECTION =====
+app.use("/license", createLicense);
+app.use("/validate", validateLicense);
+
 const MONGO_URI: string =
   process.env.MONGO_URI || "mongodb://localhost:27017/your_database";
 

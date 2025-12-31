@@ -6,26 +6,53 @@ export enum Status {
   REVOKED = "REVOKED",
 }
 
-export enum PlanType {
-  MONTHLY = "MONTHLY",
-  YEARLY = "YEARLY",
-  CUSTOM = "CUSTOM",
+export interface LicenseType {
+  key: string;
+  productName: string;
+  customer: string;
+  duration: number; // in months
+  issuedAt: Date;
+  expiresAt: Date;
+  status: Status;
 }
 
-const licenseSchema = new Schema({
-  key: { type: String, unique: true },
-  productName: String,
-  customer: String,
-  planType: {
+const licenseSchema = new Schema<LicenseType>({
+  key: {
     type: String,
-    enum: Object.values(PlanType),
-    default: PlanType.YEARLY,
+    unique: true,
+    required: true,
   },
-  durationDays: { type: Number, default: 365 },
-  issuedAt: { type: Date, default: Date.now },
-  expiresAt: Date,
-  status: { type: String, enum: Object.values(Status), default: Status.ACTIVE },
-  developerId: String,
+  productName: {
+    type: String,
+    required: true,
+  },
+  customer: {
+    type: String,
+    required: [true, "Customer name is required"],
+  },
+
+  duration: {
+    type: Number,
+    min: 1,
+    max: 12,
+    required: [true, "Duration is required (1-12 months)"],
+  },
+
+  issuedAt: {
+    type: Date,
+    default: Date.now,
+  },
+
+  expiresAt: {
+    type: Date,
+    required: true,
+  },
+
+  status: {
+    type: String,
+    enum: Object.values(Status),
+    default: Status.ACTIVE,
+  },
 });
 
-export const License = model("License", licenseSchema);
+export const License = model<LicenseType>("License", licenseSchema);
