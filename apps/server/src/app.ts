@@ -5,7 +5,8 @@ import dotenv from "dotenv";
 import helmet from "helmet";
 import cors from "cors";
 import auth from "./routes/auth.routes";
-import { createLicense } from "./controllers/license.controller";
+import license from "./routes/license.routes";
+
 import validateLicense from "./routes/validate.route";
 import "./utils/expireLicenses";
 dotenv.config();
@@ -23,7 +24,7 @@ app.use(
 );
 
 app.use("/auth", auth);
-app.use("/license", createLicense);
+app.use("/license", license);
 app.use("/validate", validateLicense);
 
 const MONGO_URI: string =
