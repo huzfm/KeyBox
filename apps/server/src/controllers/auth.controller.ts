@@ -63,16 +63,10 @@ export const login = async (req: Request<LoginBody>, res: Response) => {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
-    if (!user)
-      return res.status(404).json({
-        error: "User not found",
-      });
+    if (!user) return res.status(404).json({ message: "User not found" });
 
     const match = await bcrypt.compare(password, user.password_hash);
-    if (!match)
-      return res.status(400).json({
-        error: "Invalid credentials",
-      });
+    if (!match) return res.status(400).json({ message: "Invalid credentials" });
 
     const token = jwt.sign(
       {
@@ -81,15 +75,14 @@ export const login = async (req: Request<LoginBody>, res: Response) => {
         role: user.role,
       },
       process.env.JWT_SECRET || "defaultsecret",
-      {
-        expiresIn: "1h",
-      }
+      { expiresIn: "1h" }
     );
 
-    res.json({
+    return res.json({
       message: "Login successful",
-      user: user.email,
       token,
+      userId: user._id,
+      role: user.role,
     });
   } catch (error) {
     return res.status(500).json({

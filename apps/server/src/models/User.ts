@@ -1,4 +1,5 @@
 import { Schema, model } from "mongoose";
+import { LicenseType } from "./License";
 
 export enum Role {
   ADMIN = "ADMIN",
@@ -12,6 +13,7 @@ export interface UserType {
   role: Role;
   company_name?: string;
   createdAt: Date;
+  licenses?: LicenseType[];
 }
 
 const userSchema = new Schema<UserType>({

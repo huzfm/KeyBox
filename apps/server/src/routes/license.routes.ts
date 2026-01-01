@@ -1,15 +1,18 @@
 import { Router } from "express";
 import {
   createLicense,
-  getUsersAndLicense,
   getUsersAndLicenses,
   revokeLicense,
+  getUserWithLicenses,
 } from "../controllers/license.controller";
-import { get } from "http";
+import { auth } from "../middleware/jwt";
 const router = Router();
 
-router.post("/create", createLicense);
+router.post("/create", auth, createLicense);
 router.patch("/revoke", revokeLicense);
 router.get("/user-licenses", getUsersAndLicenses);
-router.get("/user/:id/licenses", getUsersAndLicense);
+
+router.get("/me", auth, getUserWithLicenses);
+
+router.get("/user/:id", auth, getUserWithLicenses);
 export default router;
