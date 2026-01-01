@@ -62,43 +62,10 @@ export const createLicense = async (
   }
 };
 
-// export const revokeLicense = async (req: Request, res: Response) => {
-//   try {
-//     const key = req.params.key || req.query.key;
-
-//     if (!key)
-//       return res.status(400).json({ message: "License key is required" });
-
-//     const license = await License.findOne({ key });
-
-//     if (!license) return res.status(404).json({ message: "License not found" });
-
-//     if (license.status === Status.REVOKED)
-//       return res.status(400).json({ message: "License already revoked" });
-
-//     license.status = Status.REVOKED;
-//     await license.save();
-
-//     return res.json({
-//       message: "License status updated to REVOKED",
-//       key,
-//       status: license.status,
-//     });
-//   } catch (error) {
-//     return res.status(500).json({
-//       message: "Failed to revoke license",
-//       error: (error as Error).message,
-//     });
-//   }
-// };
-
 export const revokeLicense = async (req: Request, res: Response) => {
   try {
     // Accept key from params, query, or body
     const key = req.params.key ?? req.query.key ?? req.body.key;
-
-    // Ensure key is a valid string
-    // const key = typeof rawKey === "string" ? rawKey.trim() : null;
 
     if (!key) {
       return res.status(400).json({ message: "License key is required" });

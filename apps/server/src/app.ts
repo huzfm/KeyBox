@@ -7,7 +7,7 @@ import cors from "cors";
 import auth from "./routes/auth.routes";
 import license from "./routes/license.routes";
 
-import validateLicense from "./routes/validate.route";
+import validateKey from "./routes/validate.route";
 import "./utils/expireLicenses";
 dotenv.config();
 
@@ -25,7 +25,7 @@ app.use(
 
 app.use("/auth", auth);
 app.use("/license", license);
-app.use("/validate", validateLicense);
+app.use("/validate", validateKey);
 
 const MONGO_URI: string =
   process.env.MONGO_URI || "mongodb://localhost:27017/your_database";
@@ -35,7 +35,7 @@ mongoose
   .then(() => console.log(" Connected to MongoDB"))
 
   .catch((error: Error) => {
-    console.error("❌ MongoDB connection error:", error.message);
+    console.error("MongoDB connection error:", error.message);
     process.exit(1);
   });
 
