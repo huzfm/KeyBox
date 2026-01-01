@@ -64,38 +64,31 @@ export const createLicense = async (req: AuthRequest, res: Response) => {
     });
   }
 };
-export const revokeLicense = async (req: Request, res: Response) => {
+export const toggleLicense = async (req: Request, res: Response) => {
   try {
-    // Accept key from params, query, or body
-    const key = req.params.key ?? req.query.key ?? req.body.key;
+    const key = req.params.key;
 
-    if (!key) {
+    if (!key)
       return res.status(400).json({ message: "License key is required" });
-    }
 
     const license = await License.findOne({ key });
+    if (!license) return res.status(404).json({ message: "License not found" });
 
-    if (!license) {
-      return res.status(404).json({ message: "License not found" });
-    }
+    // Toggle logic
+    license.status =
+      license.status === Status.ACTIVE ? Status.REVOKED : Status.ACTIVE;
 
-    if (license.status === Status.REVOKED) {
-      return res.status(409).json({ message: "License is already revoked" });
-    }
-
-    license.status = Status.REVOKED;
     await license.save();
 
     return res.json({
-      message: "License successfully revoked",
+      message: `License status changed to ${license.status}`,
       key: license.key,
       status: license.status,
     });
   } catch (error: any) {
-    return res.status(500).json({
-      message: "Failed to revoke license",
-      error: error.message,
-    });
+    return res
+      .status(500)
+      .json({ message: "Failed to toggle status", error: error.message });
   }
 };
 
