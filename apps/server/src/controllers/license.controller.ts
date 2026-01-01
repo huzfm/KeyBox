@@ -113,6 +113,18 @@ export const getUsersAndLicenses = async (req: Request, res: Response) => {
   }
 };
 
+export const test = async (req: AuthRequest, res: Response) => {
+  try {
+    const user = await User.findById(req.userId).select("-password");
+    const licenses = await License.find({ user: req.userId });
+
+    return res.json({ user, licenses });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
 export const getUserWithLicenses = async (req: AuthRequest, res: Response) => {
   try {
     // Get user id from token or params

@@ -3,10 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
-import { loginUser } from "@/app/api/auth"; // <-- change if needed
+import { loginUser } from "@/app/api/auth";
 import type { AxiosError } from "axios";
+import Cookies from "js-cookie"; // <-- add this
+
 type APIError = {
   message?: string;
+  token?: string;
 };
 
 export default function LoginPage() {
@@ -23,9 +26,16 @@ export default function LoginPage() {
 
   const { mutate, isPending } = useMutation({
     mutationFn: loginUser,
-    onSuccess: () => {
+    onSuccess: (data: { token: string }) => {
+      // 🔐 Store JWT in cookies for later use
+      Cookies.set("jwt", data.token, {
+        expires: 7, // cookie valid for 7 days
+        secure: true, // send only over https (keep if production)
+        sameSite: "strict",
+      });
+
       setMsg("🎉 Login successful! Redirecting...");
-      setTimeout(() => router.push("/"), 1200); // redirect to home/dashboard
+      setTimeout(() => router.push("/dashboard"), 1200);
     },
     onError: (err: AxiosError<APIError>) => {
       setMsg(err.response?.data?.message || "❌ Login failed");
@@ -37,7 +47,6 @@ export default function LoginPage() {
     setMsg("");
     mutate(form);
   };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
       <form
