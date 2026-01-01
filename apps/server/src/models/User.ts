@@ -40,5 +40,12 @@ const userSchema = new Schema<UserType>({
     default: Date.now,
   },
 });
+userSchema.virtual("licenses", {
+  ref: "License",
+  localField: "_id",
+  foreignField: "user",
+});
+userSchema.set("toJSON", { virtuals: true });
+userSchema.set("toObject", { virtuals: true });
 
 export const User = model<UserType>("User", userSchema);

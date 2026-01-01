@@ -1,4 +1,5 @@
-import { Schema, model } from "mongoose";
+import { Schema, model, mongo } from "mongoose";
+import mongoose from "mongoose";
 
 export enum Status {
   ACTIVE = "ACTIVE",
@@ -14,6 +15,7 @@ export interface LicenseType {
   issuedAt: Date;
   expiresAt: Date;
   status: Status;
+  user: mongoose.Schema.Types.ObjectId;
 }
 
 const licenseSchema = new Schema<LicenseType>({
@@ -52,6 +54,11 @@ const licenseSchema = new Schema<LicenseType>({
     type: String,
     enum: Object.values(Status),
     default: Status.ACTIVE,
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
   },
 });
 

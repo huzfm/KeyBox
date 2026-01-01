@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { License, Status } from "../models/License";
 import { generateKey } from "../utils/genratekey";
+import { User } from "../models/User";
 
 interface LicenseBody {
   productName: string;
@@ -93,6 +94,33 @@ export const revokeLicense = async (req: Request, res: Response) => {
     return res.status(500).json({
       message: "Failed to revoke license",
       error: error.message,
+    });
+  }
+};
+
+export const getUsersAndLicenses = async (req: Request, res: Response) => {
+  try {
+    const users = await User.find().populate("licenses").exec();
+    return res.json({
+      users,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Failed to retrieve users and licenses",
+      error: (error as Error).message,
+    });
+  }
+};
+export const getUsersAndLicense = async (req: Request, res: Response) => {
+  try {
+    const user = await User.findById(req.params.id).populate("licenses");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json(user);
+  } catch (error) {
+    return res.status(500).json({
+      message: "Failed to retrieve user and licenses",
+      error: (error as Error).message,
     });
   }
 };

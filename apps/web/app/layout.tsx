@@ -1,14 +1,18 @@
-import type { Metadata } from "next";
-import localFont from "next/font/local";
-import "./globals.css";
+// ❌ NO "use client" here
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import Providers from "./provider"; // <-- create client wrapper
+
+const geistSans = Geist({
   variable: "--font-geist-sans",
+  subsets: ["latin"],
 });
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
+
+const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
@@ -18,13 +22,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {children}
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
