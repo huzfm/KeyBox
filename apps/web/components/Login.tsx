@@ -57,7 +57,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
       {/* GRID BACKGROUND */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:35px_35px]" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-size-[35px_35px]" />
 
       <div className="relative z-10 flex min-h-screen">
         {/* LEFT SIDE — STATIC LOCK + KEY */}
@@ -67,7 +67,7 @@ export default function LoginPage() {
 
         {/* RIGHT SIDE — LOGIN FORM (UNCHANGED) */}
         <div className="w-full lg:w-1/2 flex items-center justify-center p-6">
-          <div className="w-full max-w-sm bg-gray-300 rounded-2xl">
+          <div className="w-full max-w-sm bg-white rounded-2xl">
             <form
               onSubmit={handleSubmit}
               className="border border-border/50 bg-card/40 backdrop-blur-md rounded-2xl p-8 space-y-6 shadow-2xl"
@@ -124,7 +124,7 @@ export default function LoginPage() {
                 </p>
               )}
 
-              <p className="text-center text-sm text-muted-foreground mt-6">
+              <p className="text-center text-sm text-black font-semibold mt-6">
                 Don&apos;t have an account?{" "}
                 <a
                   href="/signup"

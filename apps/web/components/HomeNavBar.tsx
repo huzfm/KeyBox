@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Lock, Github, Twitter } from "lucide-react";
+import { Github, Twitter } from "lucide-react";
 import { KeyRound } from "lucide-react";
 
 export default function HomeNavbar() {
