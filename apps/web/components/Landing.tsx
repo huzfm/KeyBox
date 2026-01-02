@@ -1,130 +1,196 @@
-import Link from "next/link";
+"use client";
 
-export default function Home() {
+import type React from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
+import Cookies from "js-cookie";
+import type { AxiosError } from "axios";
+import { Lock, LockOpen, Key, Mail } from "lucide-react";
+import { loginUser } from "@/app/api/auth";
+
+type APIError = {
+  message?: string;
+};
+
+export default function LoginPage() {
+  const router = useRouter();
+  const [msg, setMsg] = useState("");
+
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+  });
+
+  const update = (key: string, value: string) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: loginUser,
+    onSuccess: (data: { token: string }) => {
+      Cookies.set("jwt", data.token, {
+        expires: 7,
+        secure: true,
+        sameSite: "strict",
+      });
+      setMsg("Login successful! Redirecting...");
+      setTimeout(() => router.push("/dashboard"), 1200);
+    },
+    onError: (err: AxiosError<APIError>) => {
+      setMsg(err.response?.data?.message || "Login failed");
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setMsg("");
+    mutate(form);
+  };
+
   return (
-    <main className="min-h-screen bg-gray-50 text-gray-900">
-      {/* 🌐 Navbar */}
-      <header className="flex items-center justify-between px-8 py-4 bg-white shadow-sm">
-        <h1 className="text-2xl font-bold text-blue-600">LicenseFlow</h1>
-        <nav className="flex gap-6">
-          <a href="#features" className="hover:text-blue-600 font-medium">
-            Features
-          </a>
-          <a href="#pricing" className="hover:text-blue-600 font-medium">
-            Pricing
-          </a>
-          <a href="#contact" className="hover:text-blue-600 font-medium">
-            Contact
-          </a>
-        </nav>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium">
-          <Link href="/login">Login</Link>
-        </button>
-      </header>
+    <div className="min-h-screen bg-black relative overflow-hidden">
+      {/* GRID BACKGROUND */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:35px_35px]" />
 
-      {/* 🎯 Hero Section */}
-      <section className="text-center py-24 px-6 bg-linear-to-b from-blue-50 to-white">
-        <h2 className="text-4xl font-bold mb-4 text-gray-900 leading-tight">
-          Smart & Secure{" "}
-          <span className="text-blue-600">License Management</span> for Modern
-          Software Teams
-        </h2>
-        <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
-          Generate, validate, revoke and monitor licenses with ease. A complete
-          solution backed with automation, security, and analytics.
-        </p>
-        <button className="px-8 py-3 bg-blue-600 text-white font-medium rounded-lg text-lg hover:bg-blue-700">
-          Get Started Free →
-        </button>
-      </section>
-
-      {/* ⚙️ Features */}
-      <section id="features" className="py-20 px-10">
-        <h3 className="text-3xl font-bold text-center mb-10">
-          Powerful Features
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 max-w-6xl mx-auto">
-          {[
-            [
-              "License Creation",
-              "Create secure license keys with product and user binding.",
-            ],
-            [
-              "Real-time Validation",
-              "REST API endpoints for verifying licenses on any platform.",
-            ],
-            [
-              "Auto Expiry & Revocation",
-              "Automated cron jobs to expire or revoke compromised keys.",
-            ],
-            [
-              "Role-Based Access",
-              "Admin & Developer access controls for secure collaboration.",
-            ],
-            [
-              "Analytics Dashboard",
-              "Track activations, product usage, and performance metrics.",
-            ],
-            [
-              "Multi-Platform Ready",
-              "Desktop, web, SaaS, plugins & offline support.",
-            ],
-          ].map(([title, desc]) => (
-            <div
-              key={title}
-              className="bg-white shadow-md rounded-xl p-8 text-center"
-            >
-              <h4 className="text-xl font-bold mb-3">{title}</h4>
-              <p className="text-gray-600">{desc}</p>
-            </div>
-          ))}
+      <div className="relative z-10 flex min-h-screen">
+        {/* LEFT SIDE — ONE-TIME UNLOCK */}
+        <div className="hidden lg:flex w-1/2 items-center justify-center p-8">
+          <OneTimeUnlock />
         </div>
-      </section>
 
-      {/* 💸 Pricing */}
-      <section id="pricing" className="py-20 bg-gray-100 text-center">
-        <h3 className="text-3xl font-bold mb-10">
-          Simple, Transparent Pricing
-        </h3>
-
-        <div className="flex flex-col md:flex-row justify-center gap-10 max-w-4xl mx-auto">
-          {[
-            ["Starter", "$0", "Up to 50 licenses"],
-            ["Pro", "$29/mo", "Up to 1000 licenses"],
-            ["Enterprise", "Custom", "Unlimited licenses + Priority Support"],
-          ].map(([plan, price, desc]) => (
-            <div
-              key={plan}
-              className="bg-white p-8 rounded-xl shadow-md w-full md:w-1/3"
+        {/* RIGHT SIDE — LOGIN FORM */}
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-6">
+          <div className="w-full max-w-sm">
+            <form
+              onSubmit={handleSubmit}
+              className="border border-border/50 bg-card/40 backdrop-blur-md rounded-2xl p-8 space-y-6 shadow-2xl"
             >
-              <h4 className="font-bold text-2xl mb-3">{plan}</h4>
-              <p className="text-4xl font-bold mb-4">{price}</p>
-              <p className="mb-6 text-gray-600">{desc}</p>
-              <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
-                Choose Plan
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">
+                  Welcome Back
+                </h1>
+                <p className="text-muted-foreground text-sm mt-2">
+                  Enter your credentials to continue
+                </p>
+              </div>
+
+              {/* EMAIL */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="email"
+                    required
+                    value={form.email}
+                    onChange={(e) => update("email", e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border/50 bg-muted/30 focus:ring-2 focus:ring-primary/50"
+                    placeholder="you@example.com"
+                  />
+                </div>
+              </div>
+
+              {/* PASSWORD */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="password"
+                    required
+                    value={form.password}
+                    onChange={(e) => update("password", e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border/50 bg-muted/30 focus:ring-2 focus:ring-primary/50"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+
+              <button
+                disabled={isPending}
+                className="w-full bg-primary text-primary-foreground py-2.5 rounded-lg font-semibold hover:bg-primary/90 active:scale-95 transition"
+              >
+                {isPending ? "Logging in..." : "Log In"}
               </button>
-            </div>
-          ))}
+
+              {msg && (
+                <p
+                  className={`text-center text-sm p-3 rounded-lg ${
+                    msg.includes("successful")
+                      ? "bg-green-500/20 text-green-400"
+                      : "bg-destructive/20 text-destructive"
+                  }`}
+                >
+                  {msg}
+                </p>
+              )}
+            </form>
+          </div>
         </div>
-      </section>
+      </div>
 
-      {/* 📩 Contact */}
-      <section id="contact" className="py-20 text-center">
-        <h3 className="text-3xl font-bold mb-6">Contact Us</h3>
-        <p className="text-gray-600 mb-6">Need help? Reach out anytime.</p>
-        <a
-          href="mailto:support@licenseflow.com"
-          className="text-blue-600 font-medium underline"
-        >
-          support@licenseflow.com
-        </a>
-      </section>
+      {/* ANIMATIONS */}
+      <style>{`
+        @keyframes lockIdle {
+          0%,100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+        }
 
-      {/* 🦶 Footer */}
-      <footer className="py-6 text-center bg-gray-200 text-gray-700">
-        © {new Date().getFullYear()} LicenseFlow. All rights reserved.
-      </footer>
-    </main>
+        @keyframes keyInsert {
+          0% { transform: translateY(-90px); opacity: 0; }
+          30% { opacity: 1; }
+          55% { transform: translateY(0); opacity: 1; }
+          70% { opacity: 0; }
+          100% { opacity: 0; }
+        }
+
+        @keyframes unlock {
+          0%,60% { opacity: 0; transform: scale(0.9); }
+          75% { opacity: 1; transform: scale(1.1); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+
+        .animate-lock { animation: lockIdle 4s ease-in-out forwards; }
+        .animate-key { animation: keyInsert 4s ease-in-out forwards; }
+        .animate-unlock { animation: unlock 4s ease-in-out forwards; }
+      `}</style>
+    </div>
+  );
+}
+
+/* ---------------- ONE-TIME UNLOCK COMPONENT ---------------- */
+
+function OneTimeUnlock() {
+  const [unlocked, setUnlocked] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setUnlocked(true), 4000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <div className="relative flex items-center justify-center w-full h-full">
+      <div className="absolute w-72 h-72 bg-primary/25 rounded-full blur-3xl animate-pulse" />
+
+      <div className="relative z-10 flex flex-col items-center gap-6">
+        <div className="relative w-24 h-24 flex items-center justify-center">
+          {!unlocked && (
+            <>
+              <Lock className="absolute w-24 h-24 text-primary animate-lock" />
+              <Key className="absolute w-14 h-14 text-white animate-key" />
+              <LockOpen className="absolute w-24 h-24 text-primary animate-unlock" />
+            </>
+          )}
+
+          {unlocked && (
+            <LockOpen className="w-24 h-24 text-primary drop-shadow-[0_0_30px_rgba(255,255,255,0.4)]" />
+          )}
+        </div>
+
+        <p className="text-muted-foreground text-lg tracking-wide">
+          {unlocked ? "License Activated" : "Activating License"}
+        </p>
+      </div>
+    </div>
   );
 }

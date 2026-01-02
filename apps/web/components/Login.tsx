@@ -1,20 +1,26 @@
 "use client";
 
+import type React from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
-import { loginUser } from "@/app/api/auth";
+import Cookies from "js-cookie";
 import type { AxiosError } from "axios";
-import Cookies from "js-cookie"; // <-- add this
+import { Lock, LockOpen, Mail } from "lucide-react";
+import { loginUser } from "@/app/api/auth";
+
+/* ---------------- TYPES ---------------- */
 
 type APIError = {
   message?: string;
-  token?: string;
 };
+
+/* ---------------- PAGE ---------------- */
 
 export default function LoginPage() {
   const router = useRouter();
-  const [msg, setMsg] = useState<string>("");
+  const [msg, setMsg] = useState("");
+  const [unlocked, setUnlocked] = useState(false);
 
   const [form, setForm] = useState({
     email: "",
@@ -27,18 +33,18 @@ export default function LoginPage() {
   const { mutate, isPending } = useMutation({
     mutationFn: loginUser,
     onSuccess: (data: { token: string }) => {
-      // 🔐 Store JWT in cookies for later use
       Cookies.set("jwt", data.token, {
-        expires: 7, // cookie valid for 7 days
-        secure: true, // send only over https (keep if production)
+        expires: 7,
+        secure: true,
         sameSite: "strict",
       });
 
-      setMsg("🎉 Login successful! Redirecting...");
-      setTimeout(() => router.push("/dashboard"), 1200);
+      setUnlocked(true);
+      setMsg("Login successful! Redirecting...");
+      setTimeout(() => router.push("/dashboard"), 500);
     },
     onError: (err: AxiosError<APIError>) => {
-      setMsg(err.response?.data?.message || "❌ Login failed");
+      setMsg(err.response?.data?.message || "Login failed");
     },
   });
 
@@ -47,65 +53,115 @@ export default function LoginPage() {
     setMsg("");
     mutate(form);
   };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-md bg-white shadow-md rounded-xl p-8 space-y-6"
-      >
-        <h1 className="text-2xl font-bold text-center">Welcome Back</h1>
+    <div className="min-h-screen bg-black relative overflow-hidden">
+      {/* GRID BACKGROUND */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:35px_35px]" />
 
-        <div>
-          <label className="block text-gray-700 font-medium">Email</label>
-          <input
-            type="email"
-            placeholder="you@example.com"
-            value={form.email}
-            onChange={(e) => update("email", e.target.value)}
-            required
-            className="mt-2 w-full rounded-lg border p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+      <div className="relative z-10 flex min-h-screen">
+        {/* LEFT SIDE — STATIC LOCK + KEY */}
+        <div className="hidden lg:flex w-1/2 items-center justify-center p-8">
+          <StaticLock unlock={unlocked} />
         </div>
 
-        <div>
-          <label className="block text-gray-700 font-medium">Password</label>
-          <input
-            type="password"
-            placeholder="********"
-            value={form.password}
-            onChange={(e) => update("password", e.target.value)}
-            required
-            className="mt-2 w-full rounded-lg border p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+        {/* RIGHT SIDE — LOGIN FORM (UNCHANGED) */}
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-6">
+          <div className="w-full max-w-sm bg-gray-300 rounded-2xl">
+            <form
+              onSubmit={handleSubmit}
+              className="border border-border/50 bg-card/40 backdrop-blur-md rounded-2xl p-8 space-y-6 shadow-2xl"
+            >
+              <div>
+                <h1 className="text-3xl font-bold text-black">Welcome Back</h1>
+                <p className="text-muted-foreground text-sm mt-2">
+                  Enter your credentials to continue
+                </p>
+              </div>
+
+              {/* EMAIL */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="email"
+                    required
+                    value={form.email}
+                    onChange={(e) => update("email", e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-black bg-muted/30 focus:ring-2 focus:ring-primary/50"
+                    placeholder="you@example.com"
+                  />
+                </div>
+              </div>
+
+              {/* PASSWORD */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="password"
+                    required
+                    value={form.password}
+                    onChange={(e) => update("password", e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-black bg-muted/30 focus:ring-2 focus:ring-primary/50"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+
+              <button
+                disabled={isPending}
+                className="w-full bg-primary text-primary-foreground py-2.5 rounded-lg font-semibold hover:bg-primary/90 active:scale-95 transition"
+              >
+                {isPending ? "Logging in..." : "Log In"}
+              </button>
+
+              {msg && (
+                <p className="text-center text-sm p-3 rounded-lg bg-black/10 text-black">
+                  {msg}
+                </p>
+              )}
+
+              <p className="text-center text-sm text-muted-foreground mt-6">
+                Don&apos;t have an account?{" "}
+                <a
+                  href="/signup"
+                  className="text-primary font-semibold hover:underline"
+                >
+                  Sign up
+                </a>
+              </p>
+            </form>
+          </div>
         </div>
+      </div>
+    </div>
+  );
+}
 
-        <button
-          disabled={isPending}
-          className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50"
-        >
-          {isPending ? "Logging in..." : "Log In"}
-        </button>
+/* ---------------- STATIC LOCK COMPONENT ---------------- */
 
-        {msg && (
-          <p
-            className={`text-center font-medium mt-2 ${
-              msg.includes("🎉") ? "text-green-600" : "text-red-600"
-            }`}
-          >
-            {msg}
-          </p>
+function StaticLock({ unlock }: { unlock: boolean }) {
+  return (
+    <div className="relative flex flex-col items-center gap-8">
+      {/* Glow */}
+      <div className="absolute w-80 h-80 bg-primary/30 rounded-full blur-3xl" />
+
+      {/* Icons */}
+      <div className="relative z-10 flex items-center gap-6">
+        {unlock ? (
+          <LockOpen className="w-40 h-40 text-white" />
+        ) : (
+          <Lock className="w-40 h-40 text-white" />
         )}
+      </div>
 
-        <p className="text-center text-gray-600 text-sm">
-          Dont have an account?{" "}
-          <a
-            href="/signup"
-            className="text-blue-600 font-medium hover:underline"
-          >
-            Sign up
-          </a>
-        </p>
-      </form>
+      {/* Status Text */}
+      <p className="relative z-10 text-3xl font-semibold tracking-wide text-white">
+        {unlock ? "Unlocked" : "Locked"}
+      </p>
     </div>
   );
 }
