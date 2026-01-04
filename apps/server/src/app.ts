@@ -6,10 +6,9 @@ import helmet from "helmet";
 import cors from "cors";
 import auth from "./routes/auth.routes";
 import license from "./routes/license.routes";
-import serverless from "serverless-http";
 
 import validateKey from "./routes/validate.route";
-import "./utils/expireLicenses";
+// import "./utils/expireLicenses";
 dotenv.config();
 
 const app: Express = express();
