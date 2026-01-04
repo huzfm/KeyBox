@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@9.0.0",
   "scripts": {
-    "build": "turbo run build",
+    "build": "turbo run build --filter=web",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
