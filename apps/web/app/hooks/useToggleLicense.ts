@@ -3,7 +3,7 @@ import { toggleLicenseStatus } from "../api/license";
 
 export const useToggleLicense = (
   refetch: () => void,
-  setMsg: (msg: string) => void
+  setMsg: (msg: string) => void = () => {}
 ) =>
   useMutation({
     mutationFn: toggleLicenseStatus,

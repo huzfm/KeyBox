@@ -1,15 +1,40 @@
 "use client";
 
-import type React from "react";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
-import { Eye, EyeOff } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Plus,
+  LogOut,
+  MoreVertical,
+  Copy,
+  Check,
+} from "lucide-react";
 
 import { useDashboard } from "../hooks/useDashboard";
 import { useCreateLicense } from "../hooks/useCreateLicense";
 import { useToggleLicense } from "../hooks/useToggleLicense";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 /* ---------------- TYPES ---------------- */
 
@@ -26,33 +51,33 @@ type LicenseData = {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const token = Cookies.get("jwt");
 
-  const [showUserMenu, setShowUserMenu] = useState(false);
+  /* ---------------- HYDRATION SAFE AUTH ---------------- */
+
+  const [token, setToken] = useState<string | null>(
+    () => Cookies.get("jwt") ?? null
+  );
+
+  const userId = useMemo(() => {
+    if (!token) return null;
+    try {
+      return jwtDecode<{ userId?: string }>(token).userId ?? null;
+    } catch {
+      return null;
+    }
+  }, [token]);
+
+  /* ---------------- UI STATE ---------------- */
+
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>({});
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     productName: "",
     customer: "",
     duration: 1,
   });
-
-  /* ---------------- AUTH ---------------- */
-
-  const userId = useMemo(() => {
-    if (!token) return null;
-    try {
-      return jwtDecode<{ userId?: string }>(token).userId;
-    } catch {
-      return null;
-    }
-  }, [token]);
-
-  if (!token || !userId) {
-    router.push("/login");
-    return null;
-  }
 
   /* ---------------- DATA ---------------- */
 
@@ -67,7 +92,7 @@ export default function DashboardPage() {
   const { mutate: toggleStatus, isPending: isToggling } =
     useToggleLicense(refetch);
 
-  /* ---------------- STATUS FIX ---------------- */
+  /* ---------------- HELPERS ---------------- */
 
   const licenses: LicenseData[] =
     data?.licenses?.map((l: LicenseData) => ({
@@ -79,124 +104,232 @@ export default function DashboardPage() {
     setVisibleKeys((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const handleCopyKey = (key: string) => {
+    navigator.clipboard.writeText(key);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
   const logout = () => {
     Cookies.remove("jwt");
+    setToken(null);
     router.push("/login");
   };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "active":
+        return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
+      case "expired":
+        return "bg-amber-500/10 text-amber-600 border-amber-500/20";
+      case "revoked":
+        return "bg-red-500/10 text-red-600 border-red-500/20";
+      default:
+        return "bg-slate-500/10 text-slate-600 border-slate-500/20";
+    }
+  };
+
+  /* ---------------- RENDER GATES ---------------- */
+
+  if (!token || !userId) {
+    router.push("/login");
+    return null;
+  }
 
   /* ---------------- UI ---------------- */
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-black">
+    <main className="relative min-h-screen bg-background overflow-hidden">
       {/* GRID BACKGROUND */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-size-[35px_35px]" />
+      <div className="absolute inset-0 -z-10 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-size[35px_35px]" />
 
-      <div className="relative z-10 px-8 py-8">
+      <div className="relative z-10">
         {/* HEADER */}
-        <header className="flex justify-between items-center mb-10">
-          <h1 className="text-3xl font-bold text-white">License Dashboard</h1>
+        <header className="border-b border-slate-700/50 bg-black/80 backdrop-blur sticky top-0 z-40">
+          <div className="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-white">KeyBox</h1>
+              <p className="text-sm text-slate-400 mt-1">
+                Manage and track your software licenses
+              </p>
+            </div>
 
-          <div className="relative flex items-center gap-4">
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700"
-            >
-              + Create License
-            </button>
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={() => setShowCreateModal(true)}
+                className="gap-2 bg-slate-100 text-black"
+                disabled={isPending}
+              >
+                <Plus size={16} />
+                Create License
+              </Button>
 
-            <button
-              onClick={() => setShowUserMenu((v) => !v)}
-              className="w-10 h-10 rounded-full bg-white text-black font-bold"
-            >
-              {data?.user?.name?.[0] || "U"}
-            </button>
-
-            {showUserMenu && (
-              <div className="absolute right-0 top-12 bg-white rounded-xl shadow-lg w-56 p-4">
-                <p className="font-semibold">{data?.user?.name}</p>
-                <p className="text-sm text-gray-500">{data?.user?.email}</p>
-                <button
-                  onClick={logout}
-                  className="mt-4 w-full bg-red-600 text-white py-2 rounded-lg"
-                >
-                  Logout
-                </button>
-              </div>
-            )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback className="bg-blue-600 text-white font-semibold">
+                        {data?.user?.name?.[0] || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-2 py-1.5">
+                    <p className="font-semibold text-sm">{data?.user?.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {data?.user?.email}
+                    </p>
+                  </div>
+                  <DropdownMenuItem onClick={logout} className="text-red-600">
+                    <LogOut size={16} className="mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </header>
 
-        {/* TABLE */}
-        <section className="bg-white/95 backdrop-blur rounded-xl shadow-xl overflow-hidden">
-          <div className="px-6 py-4 border-b">
-            <h2 className="text-lg font-semibold">Your Licenses</h2>
-          </div>
-
-          {isLoading ? (
-            <p className="p-6 text-center text-gray-500">Loading...</p>
-          ) : licenses.length === 0 ? (
-            <p className="p-6 text-center text-gray-500">
-              No licenses created yet.
-            </p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-100 text-gray-700">
-                <tr>
-                  <th className="p-4 text-left">Product</th>
-                  <th>Customer</th>
-                  <th>License Key</th>
-                  <th>Duration</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {licenses.map((lic) => (
-                  <tr
-                    key={lic._id}
-                    className="border-t hover:bg-gray-50 transition"
+        {/* MAIN CONTENT */}
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-sm">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl">Your Licenses</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-muted-foreground">
+                    Loading licenses...
+                  </div>
+                </div>
+              ) : licenses.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <p className="text-muted-foreground mb-4">
+                    No licenses created yet
+                  </p>
+                  <Button
+                    onClick={() => setShowCreateModal(true)}
+                    variant="outline"
+                    className="gap-2"
                   >
-                    <td className="p-4 font-semibold">{lic.productName}</td>
-                    <td>{lic.customer}</td>
-
-                    {/* KEY WITH SHOW / HIDE */}
-                    <td className="font-mono text-blue-600">
-                      <div className="flex items-center gap-2">
-                        {visibleKeys[lic._id] ? lic.key : "••••••••••••••••"}
-                        <button
-                          onClick={() => toggleKeyVisibility(lic._id)}
-                          className="text-gray-500 hover:text-black"
+                    <Plus size={16} />
+                    Create your first license
+                  </Button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="border-b border-slate-700/50">
+                      <tr>
+                        <th className="text-left py-3 px-4">Product</th>
+                        <th className="text-left py-3 px-4">Customer</th>
+                        <th className="text-left py-3 px-4">License Key</th>
+                        <th className="text-left py-3 px-4">Duration</th>
+                        <th className="text-left py-3 px-4">Status</th>
+                        <th className="text-right py-3 px-4">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {licenses.map((lic) => (
+                        <tr
+                          key={lic._id}
+                          className="border-t border-slate-700/30"
                         >
-                          {visibleKeys[lic._id] ? (
-                            <EyeOff size={16} />
-                          ) : (
-                            <Eye size={16} />
-                          )}
-                        </button>
-                      </div>
-                    </td>
-
-                    <td>{lic.duration} months</td>
-
-                    <td>
-                      <ToggleSwitch
-                        checked={lic.status === "active"}
-                        disabled={isToggling}
-                        onChange={() => toggleStatus(lic.key)}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </section>
+                          <td className="py-4 px-4 text-white">
+                            {lic.productName}
+                          </td>
+                          <td className="py-4 px-4 text-slate-300">
+                            {lic.customer}
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2">
+                              <code className="font-mono text-xs bg-slate-700/50 px-2 py-1 rounded">
+                                {visibleKeys[lic._id]
+                                  ? lic.key
+                                  : lic.key.substring(0, 8) + "••••••••"}
+                              </code>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => toggleKeyVisibility(lic._id)}
+                              >
+                                {visibleKeys[lic._id] ? (
+                                  <EyeOff size={16} />
+                                ) : (
+                                  <Eye size={16} />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleCopyKey(lic.key)}
+                              >
+                                {copiedKey === lic.key ? (
+                                  <Check
+                                    size={16}
+                                    className="text-emerald-500"
+                                  />
+                                ) : (
+                                  <Copy size={16} />
+                                )}
+                              </Button>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4 text-slate-300">
+                            {lic.duration} month
+                            {lic.duration !== 1 && "s"}
+                          </td>
+                          <td className="py-4 px-4">
+                            <Badge
+                              variant="outline"
+                              className={`${getStatusColor(
+                                lic.status
+                              )} capitalize`}
+                            >
+                              {lic.status}
+                            </Badge>
+                          </td>
+                          <td className="py-4 px-4 text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  disabled={isToggling}
+                                >
+                                  <MoreVertical size={16} />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => toggleStatus(lic.key)}
+                                >
+                                  {lic.status === "active"
+                                    ? "Revoke License"
+                                    : "Activate License"}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* CREATE MODAL */}
-      {showCreateModal && (
-        <Modal onClose={() => setShowCreateModal(false)}>
-          <h2 className="text-xl font-bold mb-4">Create License</h2>
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle>Create New License</DialogTitle>
+          </DialogHeader>
 
           <form
             className="space-y-4"
@@ -205,94 +338,54 @@ export default function DashboardPage() {
               createLicense(form);
             }}
           >
-            <input
-              placeholder="Product Name"
-              value={form.productName}
-              onChange={(e) =>
-                setForm({ ...form, productName: e.target.value })
-              }
-              className="w-full border p-3 rounded-lg"
-            />
-            <input
-              placeholder="Customer"
-              value={form.customer}
-              onChange={(e) => setForm({ ...form, customer: e.target.value })}
-              className="w-full border p-3 rounded-lg"
-            />
-            <input
-              type="number"
-              min={1}
-              max={12}
-              value={form.duration}
-              onChange={(e) =>
-                setForm({ ...form, duration: Number(e.target.value) })
-              }
-              className="w-full border p-3 rounded-lg"
-            />
+            <div>
+              <Label>Product Name</Label>
+              <Input
+                value={form.productName}
+                onChange={(e) =>
+                  setForm({ ...form, productName: e.target.value })
+                }
+                required
+              />
+            </div>
 
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setShowCreateModal(false)}>Cancel</button>
-              <button
-                type="submit"
-                disabled={isPending}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+            <div>
+              <Label>Customer Name</Label>
+              <Input
+                value={form.customer}
+                onChange={(e) => setForm({ ...form, customer: e.target.value })}
+                required
+              />
+            </div>
+
+            <div>
+              <Label>Duration (Months)</Label>
+              <Input
+                type="number"
+                min={1}
+                max={12}
+                value={form.duration}
+                onChange={(e) =>
+                  setForm({ ...form, duration: Number(e.target.value) })
+                }
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowCreateModal(false)}
               >
-                Create
-              </button>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isPending}>
+                {isPending ? "Creating..." : "Create License"}
+              </Button>
             </div>
           </form>
-        </Modal>
-      )}
+        </DialogContent>
+      </Dialog>
     </main>
-  );
-}
-
-/* ---------------- COMPONENTS ---------------- */
-
-function ToggleSwitch({
-  checked,
-  onChange,
-  disabled,
-}: {
-  checked: boolean;
-  onChange: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      disabled={disabled}
-      onClick={onChange}
-      className={`w-12 h-6 rounded-full relative transition ${
-        checked ? "bg-green-500" : "bg-gray-300"
-      }`}
-    >
-      <span
-        className={`absolute top-1 w-4 h-4 bg-white rounded-full transition ${
-          checked ? "translate-x-7" : "translate-x-1"
-        }`}
-      />
-    </button>
-  );
-}
-
-function Modal({
-  children,
-  onClose,
-}: {
-  children: React.ReactNode;
-  onClose: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="relative bg-white p-6 rounded-xl w-full max-w-md">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400"
-        >
-          ✕
-        </button>
-        {children}
-      </div>
-    </div>
   );
 }
