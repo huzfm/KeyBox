@@ -6,12 +6,14 @@ import helmet from "helmet";
 import cors from "cors";
 import auth from "./routes/auth.routes";
 import license from "./routes/license.routes";
+import serverless from "serverless-http";
 
 import validateKey from "./routes/validate.route";
 import "./utils/expireLicenses";
 dotenv.config();
 
 const app: Express = express();
+export const handler = serverless(app);
 
 app.use(express.json());
 app.use(morgan("dev"));
@@ -55,3 +57,4 @@ app.listen(PORT, () => {
     } mode on port ${PORT}`
   );
 });
+export default app;
