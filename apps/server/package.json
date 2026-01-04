@@ -5,6 +5,7 @@
   "main": "app.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
+    "build": "tsc",
     "test-expire": "ts-node src/testExpire.ts"
   },
   "keywords": [],

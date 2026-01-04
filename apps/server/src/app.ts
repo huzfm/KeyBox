@@ -50,11 +50,10 @@ app.get("/", (_req: Request, res: Response) =>
 );
 
 const PORT: number = parseInt(process.env.PORT || "3000", 10);
-app.listen(PORT, () => {
-  console.log(
-    ` Server running in ${
-      process.env.NODE_ENV || "development"
-    } mode on port ${PORT}`
-  );
-});
-export default app;
+if (process.env.NODE_ENV === "development") {
+  app.listen(PORT, () => {
+    console.log(`Server running in development mode on port ${PORT}`);
+  });
+}
+
+export default serverless(app);
