@@ -1,13 +1,3 @@
-import {
-  ArrowRight,
-  Shield,
-  Key,
-  BarChart3,
-  Zap,
-  Lock,
-  CheckCircle,
-  Cpu,
-} from "lucide-react";
 import Link from "next/link";
 
 export default function HomeSections() {

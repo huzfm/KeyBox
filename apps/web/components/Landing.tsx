@@ -11,8 +11,8 @@ export default function Home() {
       <main className="relative z-10">
         <HomeNavbar />
         <HomeSections />
-        <Card />
-        <HomeFooter />
+
+        {/* <HomeFooter /> */}
       </main>
     </div>
   );
