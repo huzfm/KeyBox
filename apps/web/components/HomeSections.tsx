@@ -2,9 +2,14 @@ import Link from "next/link";
 
 export default function HomeSections() {
   return (
-    <>
-      {/* HERO */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 py-16 sm:py-30 text-center">
+    <section
+      className="
+        min-h-svh
+        flex items-center justify-center
+        px-4
+      "
+    >
+      <div className="max-w-5xl w-full text-center">
         <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold font-mono text-white mb-4 sm:mb-6">
           Secure license management
           <span className="block text-primary">for your Software</span>
@@ -29,7 +34,7 @@ export default function HomeSections() {
             </button>
           </Link>
         </div>
-      </section>
-    </>
+      </div>
+    </section>
   );
 }
