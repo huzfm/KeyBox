@@ -1,6 +1,6 @@
 "use client";
 
-import { Key, Shield, Zap, Lock } from "lucide-react";
+import { Key, Shield, Zap } from "lucide-react";
 import Link from "next/link";
 
 const features = [
@@ -43,30 +43,6 @@ export default function Home() {
   return (
     <main>
       {/* HERO */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 py-16 sm:py-24 text-center">
-        <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold font-mono text-white mb-6">
-          Secure license management
-          <span className="block text-primary">for your software</span>
-        </h1>
-
-        <p className="text-muted-foreground max-w-2xl mx-auto mb-10">
-          Generate, validate, and manage software licenses with ease.
-        </p>
-
-        <Link
-          href="/signup"
-          className="
-            inline-flex items-center justify-center
-            px-6 py-3 rounded-xl
-            bg-slate-100 text-black font-semibold
-            shadow-[0_0_35px_rgba(255,255,255,0.35)]
-            hover:shadow-[0_0_55px_rgba(255,255,255,0.55)]
-            transition-shadow
-          "
-        >
-          Get Started
-        </Link>
-      </section>
 
       {/* INFINITE SCROLL FEATURES */}
       <section className="relative py-16 overflow-hidden">
@@ -81,7 +57,7 @@ export default function Home() {
 
         {/* SCROLLER */}
         <div className="relative w-full overflow-hidden">
-          <div className="flex w-max animate-scroll hover:[animation-play-state:paused]">
+          <div className="flex w-max animate-scroll hover:paused">
             {[...features, ...features].map(
               (
                 {
@@ -99,7 +75,7 @@ export default function Home() {
                 <div
                   key={`${title}-${index}`}
                   className="
-                    mx-4 flex-shrink-0 w-80 p-8 rounded-2xl
+                    mx-4 shrink-0 w-80 p-8 rounded-2xl
                     backdrop-blur-xl
                     transition-all duration-500 ease-out
                     hover:shadow-2xl
@@ -108,7 +84,7 @@ export default function Home() {
                 >
                   {/* Background */}
                   <div
-                    className={`absolute inset-0 bg-gradient-to-br ${color} border ${borderColor} rounded-2xl`}
+                    className={`absolute inset-0 bg-linear-to-br ${color} border ${borderColor} rounded-2xl`}
                   />
 
                   {/* Content */}
