@@ -1,16 +1,24 @@
 import { Request, Response, NextFunction } from "express";
-import { connectDB } from "../lib/db";
+import { connectDB } from "./db";
 
 let ready = false;
 
 export async function ensureDB(
   _req: Request,
-  _res: Response,
+  res: Response,
   next: NextFunction
 ) {
-  if (!ready) {
+  if (ready) return next();
+
+  try {
     await connectDB();
     ready = true;
+    next();
+  } catch (err) {
+    console.error("Mongo connection failed", err);
+    res.status(500).json({
+      success: false,
+      message: "Database connection failed",
+    });
   }
-  next();
 }
