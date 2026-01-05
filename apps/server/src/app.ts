@@ -119,54 +119,37 @@ dotenv.config();
 
 const app: Express = express();
 
-// Middleware
+/* middleware */
 app.use(express.json());
 app.use(morgan("dev"));
 app.use(helmet());
-app.use(
-  cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  })
-);
+app.use(cors({ origin: "*", methods: ["GET", "POST", "PUT", "DELETE"] }));
 
-// Routes
+/* ✅ CONNECT DB ON FIRST LOAD (safe for serverless) */
+connectDB().catch((err) => {
+  console.error("MongoDB connection error:", err);
+});
+
+/* routes */
 app.use("/auth", auth);
 app.use("/license", license);
 app.use("/validate", validateKey);
 
 app.get("/", (_req: Request, res: Response) => {
   res.json({
-    message: "Node mongo express server is running",
+    message: "Server running",
     success: true,
     time: new Date().toISOString(),
   });
 });
 
-/**
- * ✅ DEV MODE: connect DB BEFORE listening
- */
+/* ✅ DEV ONLY LISTEN */
 if (process.env.NODE_ENV === "development") {
   const PORT = Number(process.env.PORT) || 3000;
-
-  connectDB()
-    .then(() => {
-      console.log("Connected to MongoDB (dev)");
-      app.listen(PORT, () => {
-        console.log(`Server running on port ${PORT}`);
-      });
-    })
-    .catch((err) => {
-      console.error("MongoDB connection failed:", err);
-      process.exit(1); // OK in dev
-    });
+  app.listen(PORT, () => {
+    console.log(`Dev server running on port ${PORT}`);
+  });
 }
 
-/**
- * ✅ SERVERLESS MODE (Vercel)
- * DB connection will be lazy + cached
- */
-export default async function handler(req: any, res: any) {
-  await connectDB();
-  return app(req, res);
-}
+/* ✅ THIS MUST BE THE DEFAULT EXPORT */
+export default app;

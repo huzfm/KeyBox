@@ -1,8 +1,6 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-
 dotenv.config();
-
 const MONGO_URI = process.env.MONGO_URI as string;
 
 if (!MONGO_URI) {
@@ -19,7 +17,7 @@ export async function connectDB() {
   if (cached.conn) return cached.conn;
 
   if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGO_URI).then((mongoose) => mongoose);
+    cached.promise = mongoose.connect(MONGO_URI);
   }
 
   cached.conn = await cached.promise;
