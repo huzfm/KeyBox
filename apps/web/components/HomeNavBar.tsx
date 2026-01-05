@@ -1,21 +1,30 @@
 import Link from "next/link";
-import { Github, Twitter } from "lucide-react";
-import { KeyRound } from "lucide-react";
+import { Github, Twitter, KeyRound } from "lucide-react";
 
 export default function HomeNavbar() {
   return (
-    <header className="sticky top-0 z-50 ">
-      <div className="max-w-7xl mx-auto px-60 py-10 flex items-center justify-between">
+    <header className="sticky top-0 z-50">
+      <div
+        className="
+          max-w-7xl mx-auto
+          flex items-center justify-between
+          px-4 py-3         
+          sm:px-8 sm:py-4
+          lg:px-60 lg:py-6    
+        "
+      >
         {/* LEFT: Logo + Name */}
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 flex items-center justify-center">
-            <KeyRound className="w-8 h-8 text-white " />
+        <div className="flex items-center gap-2 ring-1 ring-white/20 bg-black rounded-2xl px-2 py-2 text-white shadow-md shadow-blue-500/20 hover:shadow-blue-500/40 transition-all duration-300">
+          <div className="w-8 h-8 flex items-center justify-center shrink-0 ">
+            <KeyRound className="w-7 h-7 text-white" />
           </div>
-          <span className="text-2xl  text-white font-bold">KeyBox</span>
+          <span className="text-lg sm:text-xl lg:text-2xl text-white font-bold truncate font-mono ">
+            KeyBox
+          </span>
         </div>
 
         {/* RIGHT: Socials + Login */}
-        <div className="flex items-center gap-10">
+        <div className="flex items-center gap-3 sm:gap-5">
           <a
             href="https://github.com/your-repo"
             target="_blank"
@@ -36,7 +45,12 @@ export default function HomeNavbar() {
 
           <Link
             href="/login"
-            className="px-4 py-2 text-sm font-medium text-white bg-black border  rounded-lg transition"
+            className="
+              px-3 py-1.5 sm:px-4 sm:py-2
+              text-xs sm:text-sm
+              font-medium text-white
+              bg-black border rounded-lg transition
+            "
           >
             Login
           </Link>

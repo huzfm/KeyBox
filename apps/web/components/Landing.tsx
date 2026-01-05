@@ -1,7 +1,7 @@
 import HomeNavbar from "@/components/HomeNavBar";
 import HomeSections from "@/components/HomeSections";
 import HomeFooter from "@/components/HomeFooter";
-
+import Card from "@/components/Card";
 export default function Home() {
   return (
     <div className="relative min-h-screen w-full bg-black overflow-hidden">
@@ -11,6 +11,7 @@ export default function Home() {
       <main className="relative z-10">
         <HomeNavbar />
         <HomeSections />
+        <Card />
         <HomeFooter />
       </main>
     </div>
