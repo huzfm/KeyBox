@@ -1,9 +1,8 @@
-// import { Router } from "express";
-// import { validateLicense } from "../controllers/validate.controller";
+import { Router } from "express";
+import { validateLicense } from "../controllers/validate.controller";
 
-// const router = Router();
+const router = Router();
 
-// router.post("/", validateLicense);
-// router.post("/", validateLicense);
+router.post("/", validateLicense);
 
-// export default router;
+export default router;
