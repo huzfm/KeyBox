@@ -4,5 +4,6 @@
 // const router = Router();
 
 // router.post("/", validateLicense);
+router.post("/", validateLicense);
 
 // export default router;
