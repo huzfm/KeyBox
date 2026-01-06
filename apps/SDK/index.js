@@ -1,4 +1,5 @@
 let intervalId = null;
+let lastState = "unknown"; // "valid" | "invalid" | "unknown"
 
 function log(level, message, meta = {}) {
       const time = new Date().toISOString();
@@ -8,54 +9,69 @@ function log(level, message, meta = {}) {
       );
 }
 
-export async function startLicenseGuard({
+export async function startLicenseDaemon({
       productName,
       key,
       apiUrl = "http://api-keybox.vercel.app",
       endpoint = "/validate",
-      intervalHours = 24,
-      onValid,
-      onInvalid
+
+      intervalSeconds = 5, // 24h default
+      onStart,   // called when license becomes valid
+      onStop     // called when license becomes invalid
 }) {
       if (!productName || !key) {
             throw new Error("productName and key are required");
       }
 
       async function validateOnce() {
-            log("INFO", "Starting license validation", { productName });
+            log("INFO", "Validating license", { productName });
 
             try {
                   const response = await fetch(`${apiUrl}${endpoint}`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ productName, key })
+                        body: JSON.stringify({ key, productName })
                   });
 
-                  const data = await response.json();
-
-                  if (!data.valid) {
-                        log("ERROR", "License validation failed", {
-                              status: data.status,
-                              message: data.message
-                        });
-
-                        if (onInvalid) onInvalid(data);
-                        return;
+                  const contentType = response.headers.get("content-type") || "";
+                  if (!contentType.includes("application/json")) {
+                        throw new Error("License server did not return JSON");
                   }
 
-                  log("INFO", "License validation successful", {
-                        expiresAt: data.expiresAt
-                  });
+                  const data = await response.json();
+                  const currentState = data.valid ? "valid" : "invalid";
 
-                  if (onValid) onValid(data);
+                  // 🔁 STATE TRANSITION HANDLING
+                  if (currentState !== lastState) {
+                        log("INFO", "License state changed", {
+                              from: lastState,
+                              to: currentState,
+                              status: data.status
+                        });
+
+                        lastState = currentState;
+
+                        if (currentState === "valid") {
+                              log("INFO", "License is valid → starting app");
+                              onStart && onStart(data);
+                        } else {
+                              log("ERROR", "License is invalid → stopping app", {
+                                    status: data.status,
+                                    message: data.message
+                              });
+                              onStop && onStop(data);
+                        }
+                  } else {
+                        log("INFO", "License state unchanged", { state: currentState });
+                  }
 
             } catch (err) {
-                  log("ERROR", "License validation error", {
-                        error: err.message
-                  });
+                  log("ERROR", "License validation error", { error: err.message });
 
-                  if (onInvalid) {
-                        onInvalid({
+                  // treat network / crash as invalid
+                  if (lastState !== "invalid") {
+                        lastState = "invalid";
+                        onStop && onStop({
                               valid: false,
                               status: "error",
                               message: err.message
@@ -64,23 +80,22 @@ export async function startLicenseGuard({
             }
       }
 
-      // 🔐 Initial validation
+      // 🔐 initial check
       await validateOnce();
 
-      // ⏰ Schedule periodic validation
-      const intervalMs = intervalHours * 60 * 60 * 1000;
+      // ⏰ scheduler
+      intervalId = setInterval(validateOnce, intervalSeconds * 1000);
 
-      log("INFO", "Scheduled recurring license validation", {
-            everyHours: intervalHours
+      log("INFO", "License daemon started", {
+            intervalSeconds
       });
-
-      intervalId = setInterval(validateOnce, intervalMs);
 }
 
-export function stopLicenseGuard() {
+export function stopLicenseDaemon() {
       if (intervalId) {
             clearInterval(intervalId);
-            log("INFO", "License guard stopped");
             intervalId = null;
+            lastState = "unknown";
+            log("INFO", "License daemon stopped");
       }
 }

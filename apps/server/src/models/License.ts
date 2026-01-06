@@ -2,6 +2,7 @@ import { Schema, model } from "mongoose";
 import mongoose from "mongoose";
 
 export enum Status {
+  PENDING = "PENDING",
   ACTIVE = "ACTIVE",
   EXPIRED = "EXPIRED",
   REVOKED = "REVOKED",
@@ -53,7 +54,7 @@ const licenseSchema = new Schema<LicenseType>({
   status: {
     type: String,
     enum: Object.values(Status),
-    default: Status.ACTIVE,
+    default: Status.PENDING,
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,

@@ -43,9 +43,10 @@ export const createLicense = async (req: AuthRequest, res: Response) => {
       duration,
       issuedAt,
       expiresAt,
-      status: Status.ACTIVE,
+      status: Status.PENDING,
       user: req.userId, // <-- JWT extracted user
     });
+    console.log(license.status);
 
     return res.status(201).json({
       message: "License Created Successfully",

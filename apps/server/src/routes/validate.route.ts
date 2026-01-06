@@ -1,8 +1,12 @@
 import { Router } from "express";
-import { validateLicense } from "../controllers/validate.controller";
+import {
+  validateLicense,
+  activateLicense,
+} from "../controllers/validate.controller";
 
 const router = Router();
 
 router.post("/", validateLicense);
+router.post("/activate", activateLicense);
 
 export default router;
