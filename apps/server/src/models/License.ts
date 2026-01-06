@@ -1,4 +1,4 @@
-import { Schema, model, mongo } from "mongoose";
+import { Schema, model } from "mongoose";
 import mongoose from "mongoose";
 
 export enum Status {

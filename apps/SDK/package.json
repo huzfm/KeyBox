@@ -1,0 +1,21 @@
+{
+  "name": "lm-licensing-sdk",
+  "version": "1.0.0",
+  "description": "Node.js licensing SDK",
+  "main": "index.js",
+  "private": true,
+  "keywords": [
+    "licensing",
+    "activation",
+    "subscription"
+  ],
+  "type": "module",
+  "author": "LM",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "express": "^4.22.1",
+    "node-fetch": "^3.3.2",
+    "node-machine-id": "^1.1.12"
+  }
+}

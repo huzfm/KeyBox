@@ -5,7 +5,7 @@ import cors from "cors";
 
 import auth from "./routes/auth.routes";
 import license from "./routes/license.routes";
-import validateKey from "./routes/validate.route";
+// import validateKey from "./routes/validate.route";
 import { ensureDB } from "./lib/ensureDB";
 
 const app: Application = express();
@@ -26,7 +26,7 @@ app.use(ensureDB);
 /* routes */
 app.use("/auth", auth);
 app.use("/license", license);
-app.use("/validate", validateKey);
+// app.use("/validate", validateKey);
 
 app.get("/", (_req: Request, res: Response) => {
   res.json({
