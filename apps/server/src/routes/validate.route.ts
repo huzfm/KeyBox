@@ -3,6 +3,6 @@ import { validateLicense } from "../controllers/validate.controller";
 
 const router = Router();
 
-router.get("/", validateLicense);
+router.post("/", validateLicense);
 
 export default router;
