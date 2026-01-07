@@ -7,16 +7,21 @@ export enum Status {
   EXPIRED = "EXPIRED",
   REVOKED = "REVOKED",
 }
+export enum Services {
+  HOSTING = "Hosting",
+  DOMAIN = "Domain",
+}
 
 export interface LicenseType {
   key: string;
-  productName: string;
-  customer: string;
   duration: number;
   issuedAt: Date;
   expiresAt: Date;
   status: Status;
-  user: mongoose.Schema.Types.ObjectId;
+  services: Services;
+  user: mongoose.Types.ObjectId;
+  client: mongoose.Types.ObjectId;
+  project: mongoose.Types.ObjectId;
 }
 
 const licenseSchema = new Schema<LicenseType>({
@@ -25,20 +30,12 @@ const licenseSchema = new Schema<LicenseType>({
     unique: true,
     required: true,
   },
-  productName: {
-    type: String,
-    required: true,
-  },
-  customer: {
-    type: String,
-    required: [true, "Customer name is required"],
-  },
 
   duration: {
     type: Number,
     min: 1,
     max: 12,
-    required: [true, "Duration is required (1-12 months)"],
+    required: true,
   },
 
   issuedAt: {
@@ -56,9 +53,26 @@ const licenseSchema = new Schema<LicenseType>({
     enum: Object.values(Status),
     default: Status.PENDING,
   },
+  services: {
+    type: String,
+    enum: Object.values(Services),
+  },
+
   user: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: "User",
+    required: true,
+  },
+
+  client: {
+    type: Schema.Types.ObjectId,
+    ref: "Client",
+    required: true,
+  },
+
+  project: {
+    type: Schema.Types.ObjectId,
+    ref: "Project",
     required: true,
   },
 });

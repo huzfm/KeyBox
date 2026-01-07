@@ -10,61 +10,98 @@ interface LicenseBody {
   duration: number;
 }
 
+// export const createLicense = async (req: AuthRequest, res: Response) => {
+//   try {
+//     const { productName, customer, duration } = req.body;
+
+//     // Basic Validation
+//     if (!productName)
+//       return res.status(400).json({ message: "Product name is required" });
+
+//     if (!customer)
+//       return res.status(400).json({ message: "Customer is required" });
+
+//     if (!duration || duration < 1 || duration > 12)
+//       return res
+//         .status(400)
+//         .json({ message: "Duration must be between 1-12 months" });
+
+//     // Must come from JWT
+//     if (!req.userId)
+//       return res.status(401).json({ message: "User not authenticated" });
+
+//     const issuedAt = new Date();
+//     const expiresAt = new Date();
+//     expiresAt.setMonth(issuedAt.getMonth() + duration);
+
+//     const key = generateKey(productName);
+
+//     const license = await License.create({
+//       key,
+//       productName,
+//       customer,
+//       duration,
+//       issuedAt,
+//       expiresAt,
+//       status: Status.PENDING,
+//       user: req.userId, // <-- JWT extracted user
+//     });
+//     console.log(license.status);
+
+//     return res.status(201).json({
+//       message: "License Created Successfully",
+//       licenseKey: license.key,
+//       productName,
+//       customer,
+//       duration,
+//       expiresAt,
+//       status: license.status,
+//       userId: req.userId,
+//     });
+//   } catch (error) {
+//     return res.status(500).json({
+//       message: "License creation failed",
+//       error: (error as Error).message,
+//     });
+//   }
+// };
+
 export const createLicense = async (req: AuthRequest, res: Response) => {
   try {
-    const { productName, customer, duration } = req.body;
-
-    // Basic Validation
-    if (!productName)
-      return res.status(400).json({ message: "Product name is required" });
-
-    if (!customer)
-      return res.status(400).json({ message: "Customer is required" });
+    const { duration, clientId, projectId } = req.body;
 
     if (!duration || duration < 1 || duration > 12)
-      return res
-        .status(400)
-        .json({ message: "Duration must be between 1-12 months" });
+      return res.status(400).json({ message: "Invalid duration" });
 
-    // Must come from JWT
-    if (!req.userId)
-      return res.status(401).json({ message: "User not authenticated" });
+    if (!clientId || !projectId)
+      return res.status(400).json({ message: "Client & Project required" });
 
     const issuedAt = new Date();
     const expiresAt = new Date();
     expiresAt.setMonth(issuedAt.getMonth() + duration);
 
-    const key = generateKey(productName);
+    const key = generateKey(projectId);
 
     const license = await License.create({
       key,
-      productName,
-      customer,
       duration,
       issuedAt,
       expiresAt,
-      status: Status.PENDING,
-      user: req.userId, // <-- JWT extracted user
+      status: Status.ACTIVE,
+      user: req.userId!,
+      client: clientId,
+      project: projectId,
     });
-    console.log(license.status);
 
-    return res.status(201).json({
-      message: "License Created Successfully",
-      licenseKey: license.key,
-      productName,
-      customer,
-      duration,
-      expiresAt,
-      status: license.status,
-      userId: req.userId,
+    res.status(201).json({
+      message: "License created",
+      license,
     });
   } catch (error) {
-    return res.status(500).json({
-      message: "License creation failed",
-      error: (error as Error).message,
-    });
+    res.status(500).json({ error: (error as Error).message });
   }
 };
+
 export const toggleLicense = async (req: Request, res: Response) => {
   try {
     const key = req.params.key;
