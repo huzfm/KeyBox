@@ -16,8 +16,8 @@ export const useCreateClient = () => {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async (name: string) => {
-      const { data } = await api.post("/clients", { name });
+    mutationFn: async ({ name, email }: { name: string; email: string }) => {
+      const { data } = await api.post("/clients", { name, email });
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dashboard"] }),

@@ -4,14 +4,20 @@ import { AuthRequest } from "../middleware/jwt";
 
 export const createClient = async (req: AuthRequest, res: Response) => {
   try {
-    const { name } = req.body;
+    const { name ,email } = req.body;
 
-    if (!name) return res.status(400).json({ message: "Client name required" });
+    if (!name){
+      return res.status(400).json({ message: "Client name required" });
+    } 
+    if(!email){
+      return res.status(400).json({ message: "Client email required" });
+    }
 
     if (!req.userId) return res.status(401).json({ message: "Unauthorized" });
 
     const client = await Client.create({
       name,
+      email,
       owner: req.userId,
     });
 

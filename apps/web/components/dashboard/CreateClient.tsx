@@ -13,19 +13,22 @@ import { Input } from "@/components/ui/input";
 import { Plus } from "lucide-react";
 
 interface CreateClientProps {
-  onCreate: (name: string) => Promise<void> | void;
+  onCreate: (data: { name: string; email: string }) => Promise<void> | void;
 }
 
 export default function CreateClient({ onCreate }: CreateClientProps) {
   const [name, setName] = useState<string>("");
+  const [email,setEmail] = useState<string>("");
   const [isCreating, setIsCreating] = useState<boolean>(false);
 
+
   const handleCreate = async () => {
-    if (!name.trim()) return;
+    if (!name.trim() || !email.trim()) return;
     setIsCreating(true);
     try {
-      await onCreate(name);
+      await onCreate({ name, email });
       setName("");
+      setEmail("");
     } finally {
       setIsCreating(false);
     }
@@ -51,9 +54,18 @@ export default function CreateClient({ onCreate }: CreateClientProps) {
             onKeyDown={(e) => e.key === "Enter" && handleCreate()}
             className="bg-muted/50 border-border/50"
           />
+          <Input
+            placeholder="Enter client email"
+            value={email}
+            onChange={(e) =>
+              setEmail((e.currentTarget as unknown as { value: string }).value)
+            }
+            onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+            className="bg-muted/50 border-border/50"
+          />
           <Button
             onClick={handleCreate}
-            disabled={!name.trim() || isCreating}
+            disabled={!name.trim() || !email.trim() || isCreating}
             className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             {isCreating ? "Creating..." : "Create"}
