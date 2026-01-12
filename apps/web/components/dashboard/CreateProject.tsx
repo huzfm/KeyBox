@@ -29,7 +29,7 @@ interface Client {
 interface CreateProjectData {
   clientId: string;
   projectName: string;
-  duration: number | "";
+  duration: number;
   services: string[];
 }
 
@@ -61,12 +61,14 @@ export default function CreateProject({
   };
 
   const handleCreate = async () => {
-    if (!clientId || !projectName.trim()) return;
+    const durationNum = typeof duration === 'number' ? duration : parseInt(String(duration));
+    if (!clientId || !projectName.trim() || !durationNum || isNaN(durationNum)) return;
+    
     setIsCreating(true);
     try {
-      await onCreate({ clientId, projectName, duration, services });
+      await onCreate({ clientId, projectName, duration: durationNum, services });
       setProjectName("");
-      setDuration(12);
+      setDuration("");
     } finally {
       setIsCreating(false);
     }
