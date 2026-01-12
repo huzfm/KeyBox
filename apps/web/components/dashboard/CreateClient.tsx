@@ -13,16 +13,22 @@ import { Input } from "@/components/ui/input";
 import { Plus } from "lucide-react";
 
 interface CreateClientProps {
-  onCreate: (name: string) => void;
+  onCreate: (name: string) => Promise<void> | void;
 }
 
 export default function CreateClient({ onCreate }: CreateClientProps) {
   const [name, setName] = useState<string>("");
+  const [isCreating, setIsCreating] = useState<boolean>(false);
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!name.trim()) return;
-    onCreate(name);
-    setName("");
+    setIsCreating(true);
+    try {
+      await onCreate(name);
+      setName("");
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (
@@ -35,7 +41,7 @@ export default function CreateClient({ onCreate }: CreateClientProps) {
         <CardDescription>Add a new client to your portfolio</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3">
           <Input
             placeholder="Enter client name"
             value={name}
@@ -47,10 +53,10 @@ export default function CreateClient({ onCreate }: CreateClientProps) {
           />
           <Button
             onClick={handleCreate}
-            disabled={!name.trim()}
+            disabled={!name.trim() || isCreating}
             className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
-            Create
+            {isCreating ? "Creating..." : "Create"}
           </Button>
         </div>
       </CardContent>

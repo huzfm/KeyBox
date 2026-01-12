@@ -23,12 +23,16 @@ export const createProjectWithLicense = async (
 
     if (!duration || duration < 1 || duration > 12)
       return res.status(400).json({ message: "Invalid duration" });
+    
+    if(!Array.isArray(services) || services.length === 0)
+      return res.status(400).json({ message: "At least one service is required" });
 
     if (!req.userId) return res.status(401).json({ message: "Unauthorized" });
 
     // 1️⃣ Validate Client
     const client = await Client.findById(clientId).session(session);
     if (!client) return res.status(404).json({ message: "Client not found" });
+
 
     // 2️⃣ Create Project
     const project = await Project.create(

@@ -33,7 +33,7 @@ export const useCreateProject = () => {
       clientId: string;
       projectName: string;
       duration: number;
-      services: string;
+      services: string[];
     }) => {
       await api.post("/projects/createProject", payload);
     },

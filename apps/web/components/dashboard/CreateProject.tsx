@@ -30,13 +30,15 @@ interface CreateProjectData {
   clientId: string;
   projectName: string;
   duration: number;
-  services: string;
+  services: string[];
 }
 
 interface CreateProjectProps {
   clients: Client[];
-  onCreate: (data: CreateProjectData) => void;
+  onCreate: (data: CreateProjectData) => Promise<void> | void;
 }
+
+const AVAILABLE_SERVICES = ["Hosting", "Domain"] as const;
 
 /* ---------------- COMPONENT ---------------- */
 
@@ -47,13 +49,27 @@ export default function CreateProject({
   const [clientId, setClientId] = useState<string>("");
   const [projectName, setProjectName] = useState<string>("");
   const [duration, setDuration] = useState<number>(12);
-  const [services, setServices] = useState<string>("Hosting");
+  const [services, setServices] = useState<string[]>(["Hosting"]);
+  const [isCreating, setIsCreating] = useState<boolean>(false);
 
-  const handleCreate = () => {
+  const toggleService = (service: string) => {
+    setServices((prev) =>
+      prev.includes(service)
+        ? prev.filter((s) => s !== service)
+        : [...prev, service]
+    );
+  };
+
+  const handleCreate = async () => {
     if (!clientId || !projectName.trim()) return;
-    onCreate({ clientId, projectName, duration, services });
-    setProjectName("");
-    setDuration(12);
+    setIsCreating(true);
+    try {
+      await onCreate({ clientId, projectName, duration, services });
+      setProjectName("");
+      setDuration(12);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (
@@ -109,23 +125,45 @@ export default function CreateProject({
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Select value={services} onValueChange={setServices}>
-            <SelectTrigger className="bg-muted/50 border-border/50">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Hosting">Hosting</SelectItem>
-              <SelectItem value="Domain">Domain</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex flex-col items-center gap-3">
+          <span className="text-sm text-muted-foreground">Services:</span>
+          <div className="flex gap-2">
+            {AVAILABLE_SERVICES.map((service) => {
+              const isSelected = services.includes(service);
+              return (
+                <button
+                  key={service}
+                  type="button"
+                  onClick={() => toggleService(service)}
+                  className={`
+                    relative px-4 py-2 rounded-full text-sm font-medium
+                    transition-all duration-200 ease-out
+                    border-2 
+                    ${isSelected
+                      ? "bg-slate-100 text-black"
+                      : "bg-muted/50 text-muted-foreground border-border/50 hover:border-primary/50 hover:text-foreground"
+                    }
+                  `}
+                >
+                  <span className="flex items-center gap-2">
+                    {isSelected && (
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                    {service}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
           <Button
             onClick={handleCreate}
-            disabled={!clientId || !projectName.trim()}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground col-span-2"
+            disabled={!clientId || !projectName.trim() || services.length === 0 || isCreating}
+            className="mx-auto bg-primary hover:bg-primary/90 text-primary-foreground"
           >
-            Create Project & License
+            {isCreating ? "Creating..." : "Create Project & License"}
           </Button>
         </div>
       </CardContent>

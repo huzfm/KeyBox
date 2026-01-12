@@ -18,7 +18,7 @@ export interface LicenseType {
   issuedAt: Date;
   expiresAt: Date;
   status: Status;
-  services: Services;
+  services: Services[];
   user: mongoose.Types.ObjectId;
   client: mongoose.Types.ObjectId;
   project: mongoose.Types.ObjectId;
@@ -54,8 +54,10 @@ const licenseSchema = new Schema<LicenseType>({
     default: Status.PENDING,
   },
   services: {
-    type: String,
+    type: [String],
     enum: Object.values(Services),
+    validate : [(arr:string[]) => arr.length > 0, "At least one service is required"]
+
   },
 
   user: {

@@ -14,7 +14,7 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  Building2,
+  User,
   FileText,
   ChevronDown,
   Eye,
@@ -106,7 +106,7 @@ export default function ClientsTree({ clients, onToggle }: ClientsTreeProps) {
       {clients.length === 0 ? (
         <Card className="border-border/50 bg-card/50">
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <Building2 className="h-12 w-12 text-muted-foreground/50 mb-4" />
+            <User className="h-12 w-12 text-muted-foreground/50 mb-4" />
             <h3 className="text-lg font-semibold mb-2">No clients yet</h3>
             <p className="text-muted-foreground text-sm">
               Create your first client to get started
@@ -127,8 +127,8 @@ export default function ClientsTree({ clients, onToggle }: ClientsTreeProps) {
                     <CardContent className="pt-6 pb-6 w-full">
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3 flex-1 text-left">
-                          <div className="p-2 bg-blue-600/20 rounded-lg shrink-0">
-                            <Building2 className="h-5 w-5 text-blue-400" />
+                          <div className="p-2 rounded-lg shrink-0">
+                            <User className="h-10 w-10 border-2 border-white rounded-md p-2 text-white" />
                           </div>
                           <div>
                             <h3 className="font-semibold text-base text-white">
@@ -230,8 +230,24 @@ export default function ClientsTree({ clients, onToggle }: ClientsTreeProps) {
                                             </Button>
                                           </div>
                                         </td>
-                                        <td className="py-4 px-4 text-slate-300">
-                                          {license.services || "-"}
+                                        <td className="py-4 px-4">
+                                          <div className="flex flex-wrap gap-1.5">
+                                            {license.services ? (
+                                              (Array.isArray(license.services) 
+                                                ? license.services 
+                                                : license.services.split(",").map((s: string) => s.trim())
+                                              ).map((service: string) => (
+                                                <span
+                                                  key={service}
+                                                  className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-600/50 text-slate-200 border border-slate-500/30"
+                                                >
+                                                  {service}
+                                                </span>
+                                              ))
+                                            ) : (
+                                              <span className="text-slate-500 text-xs">No services</span>
+                                            )}
+                                          </div>
                                         </td>
                                         <td className="py-4 px-4">
                                           <Badge
