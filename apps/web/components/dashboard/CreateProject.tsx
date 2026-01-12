@@ -111,6 +111,7 @@ export default function CreateProject({
           />
 
           <Input
+          
             type="number"
             min={1}
             max={12}

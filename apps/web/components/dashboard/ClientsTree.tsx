@@ -1,4 +1,4 @@
-"use client";
+import CreateBillDialog from "./CreateBillDialog";
 
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,7 @@ import {
   EyeOff,
   Copy,
   Check,
+  CreditCard,
 } from "lucide-react";
 
 /* ---------------- TYPES ---------------- */
@@ -43,6 +44,7 @@ interface Project {
 interface Client {
   _id: string;
   name: string;
+  email?: string;
   projects?: Project[];
 }
 
@@ -57,6 +59,7 @@ export default function ClientsTree({ clients, onToggle }: ClientsTreeProps) {
   const [isTogglingKey, setIsTogglingKey] = useState<string | null>(null);
   const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>({});
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [billingClient, setBillingClient] = useState<Client | null>(null);
 
   const handleToggle = async (licenseKey: string) => {
     setIsTogglingKey(licenseKey);
@@ -122,29 +125,45 @@ export default function ClientsTree({ clients, onToggle }: ClientsTreeProps) {
               className="border-0"
             >
               <Card className="border-slate-700/50 bg-slate-800/50 backdrop-blur-sm overflow-hidden">
-                <AccordionTrigger asChild>
-                  <button className="w-full">
-                    <CardContent className="pt-6 pb-6 w-full">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3 flex-1 text-left">
-                          <div className="p-2 rounded-lg shrink-0">
-                            <User className="h-10 w-10 border-2 border-white rounded-md p-2 text-white" />
+                <div className="relative">
+                  <div className="absolute right-16 top-1/2 -translate-y-1/2 z-20">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="bg-transparent border-slate-600 hover:bg-slate-700 text-slate-300 h-8"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setBillingClient(client);
+                      }}
+                    >
+                      <CreditCard className="w-3.5 h-3.5 mr-2" />
+                      Bill
+                    </Button>
+                  </div>
+                  <AccordionTrigger asChild>
+                    <button className="w-full">
+                      <CardContent className="pt-6 pb-6 w-full">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3 flex-1 text-left">
+                            <div className="p-2 rounded-lg shrink-0">
+                              <User className="h-10 w-10 border-2 border-white rounded-md p-2 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-base text-white">
+                                {client.name}
+                              </h3>
+                              <p className="text-xs text-slate-400 mt-1">
+                                {client.projects?.length || 0} project
+                                {client.projects?.length !== 1 ? "s" : ""}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="font-semibold text-base text-white">
-                              {client.name}
-                            </h3>
-                            <p className="text-xs text-slate-400 mt-1">
-                              {client.projects?.length || 0} project
-                              {client.projects?.length !== 1 ? "s" : ""}
-                            </p>
-                          </div>
+                          <ChevronDown className="h-5 w-5 text-slate-400 shrink-0 transition-transform" />
                         </div>
-                        <ChevronDown className="h-5 w-5 text-slate-400 shrink-0 transition-transform" />
-                      </div>
-                    </CardContent>
-                  </button>
-                </AccordionTrigger>
+                      </CardContent>
+                    </button>
+                  </AccordionTrigger>
+                </div>
 
                 <AccordionContent className="pt-0 pb-6 px-6">
                   <div className="space-y-4">
@@ -331,6 +350,11 @@ export default function ClientsTree({ clients, onToggle }: ClientsTreeProps) {
           ))}
         </Accordion>
       )}
+      <CreateBillDialog 
+        client={billingClient} 
+        isOpen={!!billingClient} 
+        onOpenChange={(open) => !open && setBillingClient(null)} 
+      />
     </div>
   );
 }
