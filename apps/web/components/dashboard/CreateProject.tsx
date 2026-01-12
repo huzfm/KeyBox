@@ -29,7 +29,7 @@ interface Client {
 interface CreateProjectData {
   clientId: string;
   projectName: string;
-  duration: number;
+  duration: number | "";
   services: string[];
 }
 
@@ -48,7 +48,7 @@ export default function CreateProject({
 }: CreateProjectProps) {
   const [clientId, setClientId] = useState<string>("");
   const [projectName, setProjectName] = useState<string>("");
-  const [duration, setDuration] = useState<number>(12);
+  const [duration, setDuration] = useState<number | "">("");
   const [services, setServices] = useState<string[]>(["Hosting"]);
   const [isCreating, setIsCreating] = useState<boolean>(false);
 
@@ -116,13 +116,19 @@ export default function CreateProject({
             min={1}
             max={12}
             value={duration}
-            onChange={(e) =>
-              setDuration(
-                Number((e.currentTarget as unknown as { value: string }).value)
-              )
-            }
+            onChange={(e) => {
+              const value = Number((e.currentTarget as unknown as { value: string }).value);
+              // Enforce max 12 months
+              if (value > 12) {
+                setDuration(12);
+              } else if (value < 1 && value !== 0) {
+                setDuration(1);
+              } else {
+                setDuration(value);
+              }
+            }}
             className="bg-muted/50 border-border/50"
-            placeholder="Duration"
+            placeholder="Duration in months"
           />
         </div>
 
