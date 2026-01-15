@@ -71,7 +71,7 @@ export default function LoginPage() {
             <form
               onSubmit={handleSubmit}
               className=" bg-white
-  shadow-[0_0_60px_rgba(255,255,255,0.45)] border border-black rounded-2xl p-8 space-y-6 "
+   border border-black rounded-2xl p-8 space-y-6 "
             >
               <div>
                 <h1 className="text-3xl font-bold text-black">Welcome Back</h1>
@@ -141,7 +141,7 @@ export default function LoginPage() {
               {/* GOOGLE SIGN-IN BUTTON */}
               <a
                 href="http://localhost:5000/auth/google"
-                className="w-full flex items-center justify-center gap-3 py-2.5 rounded-lg border-2 border-black bg-white text-black font-semibold hover:bg-black/5 active:scale-95 transition"
+                className="w-full flex items-center justify-center gap-3 py-2.5 rounded-xl bg-black/80 text-white font-semibold"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path
