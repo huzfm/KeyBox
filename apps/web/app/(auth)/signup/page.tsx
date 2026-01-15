@@ -40,6 +40,10 @@ export default function SignupPage() {
     e.preventDefault();
     setMsg("");
 
+    if (form.password.length < 6) {
+      return setMsg("Password must be at least 6 characters long");
+    }
+
     if (form.password !== form.confirmPassword) {
       return setMsg("Passwords do not match");
     }
@@ -125,11 +129,15 @@ export default function SignupPage() {
                 <input
                   type="password"
                   placeholder="••••••••"
+                  minLength={6}
                   value={form.password}
                   onChange={(e) => update("password", e.target.value)}
                   required
                   className="mt-2 w-full rounded-lg border border-black p-3 bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-600"
                 />
+                <p className="mt-1 text-xs text-black/60">
+                  Minimum 6 characters required
+                </p>
               </div>
 
               {/* CONFIRM PASSWORD */}

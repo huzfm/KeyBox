@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useEffect, useState, Suspense } from "react";
 import {
   useCreateClient,
   useCreateProject,
@@ -22,21 +22,49 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LogOut, User, Mail, ShieldX, KeyRound } from "lucide-react";
 import Cookies from "js-cookie";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-export default function DashboardClient() {
+function DashboardContent() {
   const { data: clients = [], isLoading } = useDashboard();
   const createClient = useCreateClient();
   const createProject = useCreateProject();
   const toggleLicense = useToggleLicense();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isChecking, setIsChecking] = useState(true);
+  const [tokenProcessed, setTokenProcessed] = useState(false);
+
+  // Handle OAuth token from URL (Google login)
+  useEffect(() => {
+    const token = searchParams.get("token");
+    if (token) {
+      // Store the token in cookies
+      Cookies.set("jwt", token, {
+        expires: 7,
+        sameSite: "strict",
+      });
+      
+      console.log("OAuth token stored from URL");
+      
+      // Mark token as processed
+      setTokenProcessed(true);
+      
+      // Clean URL by removing token parameter
+      router.replace("/dashboard");
+    } else {
+      // No token in URL, mark as processed
+      setTokenProcessed(true);
+    }
+  }, [searchParams, router]);
 
   const isAuthorized = useMemo(() => {
+    // Don't check auth until token is processed
+    if (!tokenProcessed) return false;
+    
     const jwt = Cookies.get("jwt");
     return !!jwt;
-  }, []);
+  }, [tokenProcessed]);
 
   const userInfo = useMemo(() => {
     try {
@@ -50,11 +78,14 @@ export default function DashboardClient() {
     } catch {
       return { name: null, email: null };
     }
-  }, []);
+  }, [tokenProcessed]);
 
   useEffect(() => {
-    setIsChecking(false);
-  }, []);
+    // Only mark as done checking once token is processed
+    if (tokenProcessed) {
+      setIsChecking(false);
+    }
+  }, [tokenProcessed]);
 
   const handleLogout = () => {
     Cookies.remove("jwt");
@@ -185,5 +216,17 @@ export default function DashboardClient() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function DashboardClient() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse text-slate-400">Loading dashboard...</div>
+      </div>
+    }>
+      <DashboardContent />
+    </Suspense>
   );
 }

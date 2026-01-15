@@ -1,5 +1,6 @@
 import { Schema, model } from "mongoose";
 import { LicenseType } from "./License";
+import { z } from "zod";
 
 export enum Role {
   ADMIN = "ADMIN",
@@ -9,12 +10,17 @@ export enum Role {
 export interface UserType {
   name: string;
   email: string;
-  password_hash: string;
+  password_hash?: string;
+  googleId?: string;
+  profilePicture?: string;
   role: Role;
   company_name?: string;
   createdAt: Date;
   licenses?: LicenseType[];
 }
+
+
+
 
 const userSchema = new Schema<UserType>({
   name: {
@@ -30,7 +36,18 @@ const userSchema = new Schema<UserType>({
   },
   password_hash: {
     type: String,
-    required: true,
+    required: false,
+    select : false
+  },
+  googleId: {
+    type: String,
+    required: false,
+    unique: true,
+    sparse: true,
+  },
+  profilePicture: {
+    type: String,
+    required: false,
   },
   role: {
     type: String,

@@ -30,6 +30,12 @@ export const signup = async (req: Request<SignupBody>, res: Response) => {
       });
     }
 
+    if (password.length < 6) {
+      return res.status(400).json({
+        message: "Password must be at least 6 characters long",
+      });
+    }
+
     const alreadyExists = await User.findOne({ email });
     if (alreadyExists) {
       return res.status(400).json({
@@ -62,8 +68,15 @@ export const login = async (req: Request<LoginBody>, res: Response) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select("+password_hash");
     if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Check if user has a password (OAuth users might not have one)
+    if (!user.password_hash) {
+      return res.status(400).json({ 
+        message: "This account uses Google sign-in. Please login with Google." 
+      });
+    }
 
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) return res.status(400).json({ message: "Invalid credentials" });
