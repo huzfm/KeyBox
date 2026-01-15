@@ -40,9 +40,9 @@ router.get(
 
       // Redirect to frontend with token
       // You can customize this URL based on your frontend routes
-      res.redirect(`http://localhost:3000/dashboard?token=${token}`);
+      res.redirect(`https://api-keybox.vercel.app/dashboard?token=${token}`);
     } else {
-      res.redirect("http://localhost:3000/login?error=auth_failed");
+      res.redirect("https://api-keybox.vercel.app/login?error=auth_failed");
     }
   }
 );
