@@ -20,7 +20,6 @@ function CallbackContent() {
         sameSite: "strict",
       });
       
-      console.log("Token stored, redirecting to dashboard...");
       
       // Redirect to dashboard
       setTimeout(() => {

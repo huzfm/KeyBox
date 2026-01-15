@@ -45,7 +45,6 @@ function DashboardContent() {
         sameSite: "strict",
       });
       
-      console.log("OAuth token stored from URL");
       
       // Mark token as processed
       setTokenProcessed(true);

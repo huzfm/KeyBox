@@ -134,12 +134,12 @@ export default function CreateBillDialog({
   const handleSendEmail = () => {
     const project = client.projects?.find((p) => p._id === selectedProjectId);
     console.log("Sending email to:", client.email);
-    console.log("Bill Details:", {
-      clientName: client.name,
-      projectName: project?.name,
-      items: items,
-      total: totalAmount,
-    });
+    console.table([{
+  clientName: client.name,
+  projectName: project?.name,
+  total: totalAmount,
+}]);
+
     onOpenChange(false);
     setTimeout(() => {
       setStep("create");
