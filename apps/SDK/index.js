@@ -1,9 +1,13 @@
 /* -------------------------------------------------------
    KeyBox License SDK (Node.js)
-   Features:
-   - activateLicense()  → one-time activation
-   - startLicenseDaemon() → continuous validation
-   - stopLicenseDaemon()  → stop background checks
+
+   High-level API:
+   - protectExpressApp()
+
+   Low-level APIs:
+   - activateLicense()
+   - startLicenseDaemon()
+   - stopLicenseDaemon()
 -------------------------------------------------------- */
 
 let intervalId = null;
@@ -17,9 +21,7 @@ function log(level, message, meta = {}) {
       );
 }
 
-/* =======================================================
-   🔐 ACTIVATE LICENSE (first time)
-======================================================= */
+//activate license
 export async function activateLicense({
       productName,
       key,
@@ -35,7 +37,7 @@ export async function activateLicense({
       const response = await fetch(`${apiUrl}${endpoint}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ key, productName })
+            body: JSON.stringify({ key, productName }),
       });
 
       const contentType = response.headers.get("content-type") || "";
@@ -51,23 +53,21 @@ export async function activateLicense({
 
       log("INFO", "License activated", {
             status: data.status,
-            expiresAt: data.expiresAt
+            expiresAt: data.expiresAt,
       });
 
       return data;
 }
 
-/* =======================================================
-   🔁 LICENSE DAEMON (continuous validation)
-======================================================= */
+//start license daemon
 export async function startLicenseDaemon({
       productName,
       key,
-      apiUrl = "http://api-keybox.vercel.app",
+      apiUrl = "https://api-keybox.vercel.app",
       endpoint = "/validate",
-      intervalSeconds = 86400, // default 24h
-      onStart,   // when becomes valid
-      onStop     // when becomes invalid
+      intervalSeconds = 86400,
+      onStart,
+      onStop,
 }) {
       if (!productName || !key) {
             throw new Error("productName and key are required");
@@ -80,7 +80,7 @@ export async function startLicenseDaemon({
                   const response = await fetch(`${apiUrl}${endpoint}`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ key, productName })
+                        body: JSON.stringify({ key, productName }),
                   });
 
                   const contentType = response.headers.get("content-type") || "";
@@ -95,49 +95,42 @@ export async function startLicenseDaemon({
                         log("INFO", "License state changed", {
                               from: lastState,
                               to: currentState,
-                              status: data.status
+                              status: data.status,
                         });
 
                         lastState = currentState;
 
                         if (currentState === "valid") {
-                              log("INFO", "License valid → starting app");
                               onStart && onStart(data);
                         } else {
-                              log("ERROR", "License invalid → stopping app", {
-                                    status: data.status,
-                                    message: data.message
-                              });
                               onStop && onStop(data);
                         }
                   }
-
             } catch (err) {
                   log("ERROR", "License validation error", { error: err.message });
 
                   if (lastState !== "invalid") {
                         lastState = "invalid";
-                        onStop && onStop({
-                              valid: false,
-                              status: "error",
-                              message: err.message
-                        });
+                        onStop &&
+                              onStop({
+                                    valid: false,
+                                    status: "error",
+                                    message: err.message,
+                              });
                   }
             }
       }
 
-      // initial check
+      // First validation blocks startup
       await validateOnce();
 
-      // scheduler
+      // Background scheduler
       intervalId = setInterval(validateOnce, intervalSeconds * 1000);
 
       log("INFO", "License daemon started", { intervalSeconds });
 }
 
-/* =======================================================
-   🛑 STOP DAEMON
-======================================================= */
+
 export function stopLicenseDaemon() {
       if (intervalId) {
             clearInterval(intervalId);
@@ -145,4 +138,46 @@ export function stopLicenseDaemon() {
             lastState = "unknown";
             log("INFO", "License daemon stopped");
       }
+}
+
+//api usage
+export async function protectNodeApp({
+      app,
+      port,
+      productName,
+      key,
+      apiUrl,
+      intervalSeconds = 86400,
+}) {
+      if (!app) throw new Error("Express app instance is required");
+      if (!port) throw new Error("port is required");
+
+      let server = null;
+
+      await activateLicense({ productName, key, apiUrl });
+
+      await startLicenseDaemon({
+            productName,
+            key,
+            apiUrl,
+            intervalSeconds,
+
+            onStart: () => {
+                  if (!server) {
+                        server = app.listen(port, () => {
+                              console.log(`Licensed app running at http://localhost:${port}`);
+                        });
+                  }
+            },
+
+            onStop: (data) => {
+                  console.error("License invalid → shutting down app", data);
+
+                  if (server) {
+                        server.close(() => process.exit(1));
+                  } else {
+                        process.exit(1);
+                  }
+            },
+      });
 }
