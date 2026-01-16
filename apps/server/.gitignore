@@ -45,8 +45,6 @@ Thumbs.db
 .lintstagedrc
 
 # Misc
-package-lock.json
-pnpm-lock.yaml
-yarn.lock
+
 .vercel
 .env*.local
