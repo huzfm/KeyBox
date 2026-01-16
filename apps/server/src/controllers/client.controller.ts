@@ -25,7 +25,30 @@ export const createClient = async (req: AuthRequest, res: Response) => {
       message: "Client created successfully",
       client,
     });
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+  } catch (error: any) {
+    console.error("Error creating client:", error);
+    
+    // Handle Mongoose validation errors specifically
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ 
+        message: "Validation error",
+        errors: error.errors,
+        details: error.message
+      });
+    }
+    
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      return res.status(409).json({ 
+        message: "Client with this email already exists",
+        field: Object.keys(error.keyPattern)[0]
+      });
+    }
+    
+    res.status(500).json({ 
+      message: "Internal server error",
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
