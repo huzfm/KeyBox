@@ -44,7 +44,10 @@ app.use(
 );
 
 /* 🔥 THIS MAKES MONGO WORK ON VERCEL */
-app.use(ensureDB);
+// Skip ensureDB in test environment - tests use MongoDB Memory Server
+if (process.env.NODE_ENV !== 'test') {
+  app.use(ensureDB);
+}
 
 /* routes */
 app.use("/auth", auth);

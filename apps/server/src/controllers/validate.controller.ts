@@ -56,8 +56,6 @@ export const validateLicense = async (req: Request, res: Response) => {
       return res.json({
         valid: true,
         status: "active",
-        productName: license.productName,
-        customer: license.customer,
         duration: `${license.duration} months`,
         expiresAt: license.expiresAt,
       });
