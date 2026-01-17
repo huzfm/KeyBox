@@ -4,9 +4,6 @@ import passport from 'passport'
 import googleAuthRoutes from "./routes/googleAuth.routes"
 import "./config/googleStrategy"
 
-
-
-
 import express, { Application, Express, Request, Response } from "express";
 import morgan from "morgan";
 import helmet from "helmet";
@@ -30,9 +27,6 @@ app.use(passport.initialize())
 app.use(passport.session())
 app.use('/', googleAuthRoutes)
 
-
-
-
 app.use(express.json());
 app.use(morgan("dev"));
 app.use(helmet());
@@ -43,13 +37,10 @@ app.use(
   })
 );
 
-/* 🔥 THIS MAKES MONGO WORK ON VERCEL */
-// Skip ensureDB in test environment - tests use MongoDB Memory Server
 if (process.env.NODE_ENV !== 'test') {
   app.use(ensureDB);
 }
 
-/* routes */
 app.use("/auth", auth);
 app.use("/license", license);
 app.use("/validate", validateKey);

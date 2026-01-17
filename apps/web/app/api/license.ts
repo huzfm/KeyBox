@@ -1,4 +1,4 @@
-// /api/license.ts
+
 import { axiosInstance } from "./axiosInstance";
 
 export const fetchDashboardData = async () => {
@@ -15,7 +15,6 @@ export const createLicenseAPI = async (form: {
   return res.data;
 };
 
-// PATCH: toggle status (no userId or payload needed)
 export const toggleLicenseStatus = async (licenseId: string) => {
   const res = await axiosInstance.patch(`/license/revoke/${licenseId}`);
   return res.data;

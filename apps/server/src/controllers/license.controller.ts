@@ -10,10 +10,9 @@ interface LicenseBody {
   duration: number;
 }
 
-
 export const createLicense = async (req: AuthRequest, res: Response) => {
   try {
-    const { duration, clientId, projectId } = req.body;
+    const { duration, clientId, projectId, services } = req.body;
 
     if (!duration || duration < 1 || duration > 12)
       return res.status(400).json({ message: "Invalid duration" });
@@ -32,7 +31,8 @@ export const createLicense = async (req: AuthRequest, res: Response) => {
       duration,
       issuedAt,
       expiresAt,
-      status: Status.ACTIVE,
+      status: Status.PENDING,
+      services: services || ["Hosting"],
       user: req.userId!,
       client: clientId,
       project: projectId,
@@ -57,7 +57,6 @@ export const toggleLicense = async (req: Request, res: Response) => {
     const license = await License.findOne({ key });
     if (!license) return res.status(404).json({ message: "License not found" });
 
-    // Toggle logic
     license.status =
       license.status === Status.ACTIVE ? Status.REVOKED : Status.ACTIVE;
 
@@ -103,7 +102,7 @@ export const test = async (req: AuthRequest, res: Response) => {
 
 export const getUserWithLicenses = async (req: AuthRequest, res: Response) => {
   try {
-    // Get user id from token or params
+
     const userId = req.params.id || req.userId;
 
     if (!userId) {
@@ -111,8 +110,8 @@ export const getUserWithLicenses = async (req: AuthRequest, res: Response) => {
     }
 
     const user = await User.findById(userId)
-      .select("-password_hash") // don't return password hash
-      .populate("licenses"); // populate virtual licenses
+      .select("-password_hash")
+      .populate("licenses");
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });

@@ -71,7 +71,6 @@ export const login = async (req: Request<LoginBody>, res: Response) => {
     const user = await User.findOne({ email }).select("+password_hash");
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Check if user has a password (OAuth users might not have one)
     if (!user.password_hash) {
       return res.status(400).json({ 
         message: "This account uses Google sign-in. Please login with Google." 

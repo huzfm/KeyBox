@@ -13,7 +13,7 @@ export default function HomeNavbar() {
           lg:px-60 lg:py-6    
         "
       >
-        {/* LEFT: Logo + Name */}
+        {}
         <div className="flex items-center gap-2 ring-1 ring-white/20 bg-black rounded-2xl px-2 py-2 text-white shadow-md shadow-blue-500/20 hover:shadow-blue-500/40 transition-all duration-300">
           <div className="w-8 h-8 flex items-center justify-center shrink-0 ">
             <KeyRound className="w-7 h-7 text-white" />
@@ -23,7 +23,7 @@ export default function HomeNavbar() {
           </span>
         </div>
 
-        {/* RIGHT: Socials + Login */}
+        {}
         <div className="flex items-center gap-3 sm:gap-5">
           <a
             href="https://github.com/your-repo"

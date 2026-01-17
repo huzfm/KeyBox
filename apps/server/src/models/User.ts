@@ -19,9 +19,6 @@ export interface UserType {
   licenses?: LicenseType[];
 }
 
-
-
-
 const userSchema = new Schema<UserType>({
   name: {
     type: String,

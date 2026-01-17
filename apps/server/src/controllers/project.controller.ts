@@ -10,8 +10,11 @@ export const createProjectWithLicense = async (
   req: AuthRequest,
   res: Response
 ) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+
+  const useTransactions = process.env.NODE_ENV !== 'test';
+  const session = useTransactions ? await mongoose.startSession() : null;
+
+  if (session) session.startTransaction();
 
   try {
     const { clientId, projectName, duration, services } = req.body;
@@ -23,29 +26,31 @@ export const createProjectWithLicense = async (
 
     if (!duration || duration < 1 || duration > 12)
       return res.status(400).json({ message: "Invalid duration" });
-    
+
     if(!Array.isArray(services) || services.length === 0)
       return res.status(400).json({ message: "At least one service is required" });
 
     if (!req.userId) return res.status(401).json({ message: "Unauthorized" });
 
-    // 1️⃣ Validate Client
-    const client = await Client.findById(clientId).session(session);
-    if (!client) return res.status(404).json({ message: "Client not found" });
+    const client = await Client.findById(clientId);
+    if (!client) {
+      if (session) {
+        await session.abortTransaction();
+        session.endSession();
+      }
+      return res.status(404).json({ message: "Client not found" });
+    }
 
-
-    // 2️⃣ Create Project
     const project = await Project.create(
       [
         {
           name: projectName,
-          client: client._id,
+          client: clientId,
         },
       ],
-      { session }
+      session ? { session } : {}
     );
 
-    // 3️⃣ Create License
     const issuedAt = new Date();
     const expiresAt = new Date();
     expiresAt.setMonth(issuedAt.getMonth() + duration);
@@ -62,15 +67,17 @@ export const createProjectWithLicense = async (
           services,
           status: Status.PENDING,
           user: req.userId,
-          client: client._id,
+          client: clientId,
           project: project[0]._id,
         },
       ],
-      { session }
+      session ? { session } : {}
     );
 
-    await session.commitTransaction();
-    session.endSession();
+    if (session) {
+      await session.commitTransaction();
+      session.endSession();
+    }
 
     return res.status(201).json({
       message: "Project and License created successfully",
@@ -78,8 +85,10 @@ export const createProjectWithLicense = async (
       license: license[0],
     });
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
+    if (session) {
+      await session.abortTransaction();
+      session.endSession();
+    }
 
     return res.status(500).json({
       message: "Failed to create project and license",

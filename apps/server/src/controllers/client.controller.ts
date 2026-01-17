@@ -27,8 +27,7 @@ export const createClient = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error("Error creating client:", error);
-    
-    // Handle Mongoose validation errors specifically
+
     if (error.name === 'ValidationError') {
       return res.status(400).json({ 
         message: "Validation error",
@@ -36,15 +35,14 @@ export const createClient = async (req: AuthRequest, res: Response) => {
         details: error.message
       });
     }
-    
-    // Handle duplicate key errors
+
     if (error.code === 11000) {
       return res.status(409).json({ 
         message: "Client with this email already exists",
         field: Object.keys(error.keyPattern)[0]
       });
     }
-    
+
     res.status(500).json({ 
       message: "Internal server error",
       error: error.message,

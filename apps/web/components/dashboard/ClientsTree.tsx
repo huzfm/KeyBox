@@ -24,8 +24,6 @@ import {
   CreditCard,
 } from "lucide-react";
 
-/* ---------------- TYPES ---------------- */
-
 type LicenseStatus = "ACTIVE" | "PENDING" | "REVOKED";
 
 interface License {
@@ -52,8 +50,6 @@ interface ClientsTreeProps {
   clients: Client[];
   onToggle: (key: string) => void | Promise<void>;
 }
-
-/* ---------------- COMPONENT ---------------- */
 
 export default function ClientsTree({ clients, onToggle }: ClientsTreeProps) {
   const [isTogglingKey, setIsTogglingKey] = useState<string | null>(null);

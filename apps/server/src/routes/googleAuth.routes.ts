@@ -5,9 +5,6 @@ import { UserType } from "../models/User";
 
 const router: Router = Router();
 
-/**
- * Initiates Google OAuth flow
- */
 router.get(
   "/auth/google",
   passport.authenticate("google", {
@@ -15,9 +12,6 @@ router.get(
   })
 );
 
-/**
- * Handles Google OAuth callback
- */
 router.get(
   "/auth/google/callback",
   (req: Request, res: Response, next: NextFunction) => {
@@ -27,7 +21,7 @@ router.get(
     const user = req.user as UserType | undefined;
 
     if (user) {
-      // Generate JWT token
+
       const token = jwt.sign(
         {
           userId: (user as any)._id,
@@ -38,8 +32,6 @@ router.get(
         { expiresIn: "1h" }
       );
 
-      // Redirect to frontend with token
-      // You can customize this URL based on your frontend routes
       res.redirect(`https://keyboxx.vercel.app/dashboard?token=${token}`);
     } else {
       res.redirect("https://keyboxx.vercel.app/login?error=auth_failed");

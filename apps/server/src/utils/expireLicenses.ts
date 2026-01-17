@@ -1,4 +1,4 @@
-// cron/expireLicenses.ts
+
 import cron from "node-cron";
 import { License, Status } from "../models/License";
 

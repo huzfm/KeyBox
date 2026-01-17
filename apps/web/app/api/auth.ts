@@ -10,12 +10,12 @@ export const signupUser = async (data: {
     ...data,
     confirm_password: data.confirmPassword,
   });
-  return res.data; // Axios already parses JSON
+  return res.data;
 };
 
 export const loginUser = async (data: { email: string; password: string }) => {
   const res = await axiosInstance.post("/auth/login", data);
-  return res.data; // Axios already parses JSON
+  return res.data;
 };
 
 export const createLicense = async (data: {
@@ -24,5 +24,5 @@ export const createLicense = async (data: {
   duration: number;
 }) => {
   const res = await axiosInstance.post("/license/create", data);
-  return res.data; // Axios already parses JSON
+  return res.data;
 };

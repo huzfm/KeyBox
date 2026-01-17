@@ -22,13 +22,11 @@ export default function CodeBlock({ code, language, title }: CodeBlockProps) {
     }
   };
 
-  // Enhanced syntax highlighting
   const highlightCode = useMemo(() => {
     if (language === "bash") {
       return code;
     }
 
-    // First, escape HTML entities in the original code
     let highlighted = code
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -36,26 +34,23 @@ export default function CodeBlock({ code, language, title }: CodeBlockProps) {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
 
-    // Strings (do this first to protect string contents)
     highlighted = highlighted.replace(
       /(&quot;|&#039;|`)([^&quot;&#039;`]*?)(\1)/g,
       '<span class="text-green-400">$1$2$3</span>'
     );
 
-    // Comments
     highlighted = highlighted.replace(
       /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)/g,
       '<span class="text-zinc-500 italic">$1</span>'
     );
 
-    // Keywords
     const keywords = [
       "import", "from", "export", "const", "let", "var", "function", "async",
       "await", "return", "if", "else", "for", "while", "class", "extends",
       "new", "try", "catch", "throw", "default", "case", "switch", "break",
       "continue", "typeof", "instanceof", "this", "super", "static", "get", "set"
     ];
-    
+
     keywords.forEach((keyword) => {
       const regex = new RegExp(`(?<!<[^>]*)\\b(${keyword})\\b(?![^<]*<\\/span>)`, "g");
       highlighted = highlighted.replace(
@@ -64,19 +59,16 @@ export default function CodeBlock({ code, language, title }: CodeBlockProps) {
       );
     });
 
-    // Numbers
     highlighted = highlighted.replace(
       /(?<!<[^>]*)\b(\d+)\b(?![^<]*<\/span>)/g,
       '<span class="text-blue-400">$1</span>'
     );
 
-    // Functions (callsite)
     highlighted = highlighted.replace(
       /(?<!<[^>]*)\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\((?![^<]*<\/span>)/g,
       '<span class="text-yellow-300">$1</span>('
     );
 
-    // Object properties
     highlighted = highlighted.replace(
       /(?<!<[^>]*)\.([a-zA-Z_$][a-zA-Z0-9_$]*)(?![^<]*<\/span>)/g,
       '.<span class="text-cyan-300">$1</span>'
@@ -85,13 +77,12 @@ export default function CodeBlock({ code, language, title }: CodeBlockProps) {
     return highlighted;
   }, [code, language]);
 
-  // Split code into lines for line numbers
   const codeLines = (language === "bash" ? code : highlightCode).split('\n');
   const isTerminal = language === "bash";
 
   return (
     <div className="relative group rounded-xl overflow-hidden border border-zinc-800/50 shadow-xl">
-      {/* Header */}
+      {}
       <div className="flex items-center justify-between px-4 py-2.5 bg-zinc-900/95 border-b border-zinc-800/50">
         <div className="flex items-center gap-2">
           {title && (
@@ -106,7 +97,7 @@ export default function CodeBlock({ code, language, title }: CodeBlockProps) {
           )}
         </div>
 
-        {/* Copy button */}
+        {}
         <button
           onClick={handleCopy}
           className="
@@ -134,7 +125,7 @@ export default function CodeBlock({ code, language, title }: CodeBlockProps) {
         </button>
       </div>
 
-      {/* Code Content */}
+      {}
       <div className="relative bg-[#0a0a0a]">
         <pre className="p-0 overflow-x-auto scrollbar-hide">
           <code className="block font-mono text-[13px] leading-[1.7]">

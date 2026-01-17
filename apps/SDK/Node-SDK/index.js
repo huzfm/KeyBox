@@ -1,17 +1,7 @@
-/* -------------------------------------------------------
-   KeyBox License SDK (Node.js)
 
-   High-level API:
-   - protectExpressApp()
-
-   Low-level APIs:
-   - activateLicense()
-   - startLicenseDaemon()
-   - stopLicenseDaemon()
--------------------------------------------------------- */
 
 let intervalId = null;
-let lastState = "unknown"; // "valid" | "invalid" | "unknown"
+let lastState = "unknown";
 
 function log(level, message, meta = {}) {
       const time = new Date().toISOString();
@@ -21,7 +11,6 @@ function log(level, message, meta = {}) {
       );
 }
 
-//activate license
 export async function activateLicense({
       productName,
       key,
@@ -59,7 +48,6 @@ export async function activateLicense({
       return data;
 }
 
-//start license daemon
 export async function startLicenseDaemon({
       productName,
       key,
@@ -121,15 +109,12 @@ export async function startLicenseDaemon({
             }
       }
 
-      // First validation blocks startup
       await validateOnce();
 
-      // Background scheduler
       intervalId = setInterval(validateOnce, intervalSeconds * 1000);
 
       log("INFO", "License daemon started", { intervalSeconds });
 }
-
 
 export function stopLicenseDaemon() {
       if (intervalId) {
@@ -140,7 +125,6 @@ export function stopLicenseDaemon() {
       }
 }
 
-//api usage
 export async function protectNodeApp({
       app,
       port,

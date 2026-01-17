@@ -13,15 +13,12 @@ function CallbackContent() {
     const error = searchParams.get("error");
 
     if (token) {
-      // Store JWT token in cookie
-      // Note: secure flag removed for localhost HTTP
+
       Cookies.set("jwt", token, {
         expires: 7,
         sameSite: "strict",
       });
-      
-      
-      // Redirect to dashboard
+
       setTimeout(() => {
         router.push("/dashboard");
       }, 100);
