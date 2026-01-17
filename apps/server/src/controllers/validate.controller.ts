@@ -119,18 +119,25 @@ export const activateLicense = async (req: Request, res: Response) => {
       });
     }
 
-    // ✅ ACTIVATE
-    license.status = Status.ACTIVE;
-    license.issuedAt = new Date();
 
-    await license.save();
+  // ✅ ACTIVATE
+const issuedAt = new Date();
+const expiresAt = new Date();
+expiresAt.setMonth(expiresAt.getMonth() + license.duration);
 
-    return res.json({
-      success: true,
-      message: "License activated successfully",
-      activatedAt: license.issuedAt,
-      expiresAt: license.expiresAt,
-    });
+license.status = Status.ACTIVE;
+license.issuedAt = issuedAt;
+license.expiresAt = expiresAt;
+
+await license.save();
+
+return res.json({
+  success: true,
+  message: "License activated successfully",
+  activatedAt: issuedAt,
+  expiresAt,
+});
+
   } catch (error) {
     return res.status(500).json({
       success: false,

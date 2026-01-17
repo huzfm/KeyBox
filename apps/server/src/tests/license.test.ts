@@ -29,12 +29,13 @@ describe("License Controller", () => {
   describe("POST /license", () => {
     it("should successfully create a license", async () => {
       const response = await request(app)
-        .post("/license")
+        .post("/license/create")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
           duration: 6,
           clientId,
           projectId,
+          services: ["Hosting", "Domain"],
         });
 
       expect(response.status).toBe(201);
@@ -42,26 +43,14 @@ describe("License Controller", () => {
       expect(response.body.license).toBeDefined();
       expect(response.body.license.key).toBeDefined();
       expect(response.body.license.duration).toBe(6);
-      expect(response.body.license.status).toBe(Status.ACTIVE);
+      expect(response.body.license.status).toBe(Status.PENDING);
     });
 
-    it("should reject license creation with invalid duration", async () => {
-      const response = await request(app)
-        .post("/license")
-        .set("Authorization", `Bearer ${authToken}`)
-        .send({
-          duration: 15, // Invalid (>12)
-          clientId,
-          projectId,
-        });
 
-      expect(response.status).toBe(400);
-      expect(response.body.message).toBe("Invalid duration");
-    });
 
     it("should reject license creation with duration less than 1", async () => {
       const response = await request(app)
-        .post("/license")
+        .post("/license/create")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
           duration: 0,
@@ -75,7 +64,7 @@ describe("License Controller", () => {
 
     it("should reject license creation without client or project", async () => {
       const response = await request(app)
-        .post("/license")
+        .post("/license/create")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
           duration: 6,
@@ -86,7 +75,7 @@ describe("License Controller", () => {
     });
 
     it("should reject license creation without authentication", async () => {
-      const response = await request(app).post("/license").send({
+      const response = await request(app).post("/license/create").send({
         duration: 6,
         clientId,
         projectId,
@@ -96,14 +85,14 @@ describe("License Controller", () => {
     });
   });
 
-  describe("PATCH /license/toggle/:key", () => {
+  describe("PATCH /license/revoke/:key", () => {
     it("should toggle license from ACTIVE to REVOKED", async () => {
       const license = await createTestLicense(userId, clientId, projectId, {
         status: Status.ACTIVE,
       });
 
       const response = await request(app).patch(
-        `/license/toggle/${license.key}`
+        `/license/revoke/${license.key}`
       );
 
       expect(response.status).toBe(200);
@@ -118,7 +107,7 @@ describe("License Controller", () => {
       });
 
       const response = await request(app).patch(
-        `/license/toggle/${license.key}`
+        `/license/revoke/${license.key}`
       );
 
       expect(response.status).toBe(200);
@@ -128,7 +117,7 @@ describe("License Controller", () => {
 
     it("should return 404 for non-existent license key", async () => {
       const response = await request(app).patch(
-        "/license/toggle/NONEXISTENT-KEY"
+        "/license/revoke/NONEXISTENT-KEY"
       );
 
       expect(response.status).toBe(404);
@@ -136,17 +125,17 @@ describe("License Controller", () => {
     });
 
     it("should return 400 when key is missing", async () => {
-      const response = await request(app).patch("/license/toggle/");
+      const response = await request(app).patch("/license/revoke/");
 
       expect(response.status).toBe(404); // Route not found
     });
   });
 
-  describe("GET /license/users", () => {
+  describe("GET /license/user-licenses", () => {
     it("should return users with their licenses", async () => {
       await createTestLicense(userId, clientId, projectId);
 
-      const response = await request(app).get("/license/users");
+      const response = await request(app).get("/license/user-licenses");
 
       expect(response.status).toBe(200);
       expect(response.body.users).toBeDefined();

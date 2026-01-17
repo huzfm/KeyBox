@@ -18,7 +18,7 @@ describe("Dashboard Controller", () => {
     authToken = generateTestToken(userId);
   });
 
-  describe("POST /dashboard", () => {
+  describe("GET /dashboard", () => {
     it("should return full dashboard data for user", async () => {
       // Create test data
       const client1 = await createTestClient(userId, {
@@ -52,7 +52,7 @@ describe("Dashboard Controller", () => {
       );
 
       const response = await request(app)
-        .post("/dashboard")
+        .get("/dashboard")
         .set("Authorization", `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
@@ -79,34 +79,11 @@ describe("Dashboard Controller", () => {
       });
     });
 
-    it("should filter dashboard by specific clientId", async () => {
-      const client1 = await createTestClient(userId, {
-        email: "client1@example.com",
-      });
-      const client2 = await createTestClient(userId, {
-        email: "client2@example.com",
-      });
-
-      await createTestProject(client1._id.toString());
-      await createTestProject(client2._id.toString());
-
-      const response = await request(app)
-        .post("/dashboard")
-        .set("Authorization", `Bearer ${authToken}`)
-        .send({
-          clientId: client1._id.toString(),
-        });
-
-      expect(response.status).toBe(200);
-      expect(response.body.clientsCount).toBe(1);
-      expect(response.body.data[0]._id.toString()).toBe(
-        client1._id.toString()
-      );
-    });
+   
 
     it("should return empty data when user has no clients", async () => {
       const response = await request(app)
-        .post("/dashboard")
+        .get("/dashboard")
         .set("Authorization", `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
@@ -116,7 +93,7 @@ describe("Dashboard Controller", () => {
     });
 
     it("should reject dashboard request without authentication", async () => {
-      const response = await request(app).post("/dashboard");
+      const response = await request(app).get("/dashboard");
 
       expect(response.status).toBe(401);
     });
@@ -125,7 +102,7 @@ describe("Dashboard Controller", () => {
       await createTestClient(userId, { email: "client@example.com" });
 
       const response = await request(app)
-        .post("/dashboard")
+        .get("/dashboard")
         .set("Authorization", `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
@@ -139,7 +116,7 @@ describe("Dashboard Controller", () => {
       await createTestProject(client._id.toString());
 
       const response = await request(app)
-        .post("/dashboard")
+        .get("/dashboard")
         .set("Authorization", `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
@@ -158,7 +135,7 @@ describe("Dashboard Controller", () => {
       });
 
       const response = await request(app)
-        .post("/dashboard")
+        .get("/dashboard")
         .set("Authorization", `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);

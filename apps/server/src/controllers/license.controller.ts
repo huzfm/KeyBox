@@ -13,7 +13,7 @@ interface LicenseBody {
 
 export const createLicense = async (req: AuthRequest, res: Response) => {
   try {
-    const { duration, clientId, projectId } = req.body;
+    const { duration, clientId, projectId, services } = req.body;
 
     if (!duration || duration < 1 || duration > 12)
       return res.status(400).json({ message: "Invalid duration" });
@@ -32,7 +32,8 @@ export const createLicense = async (req: AuthRequest, res: Response) => {
       duration,
       issuedAt,
       expiresAt,
-      status: Status.ACTIVE,
+      status: Status.PENDING,
+      services: services || ["Hosting"], // Default to Hosting if not provided
       user: req.userId!,
       client: clientId,
       project: projectId,

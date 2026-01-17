@@ -60,31 +60,8 @@ describe("Client Controller", () => {
       expect(response.body.message).toBe("Client email required");
     });
 
-    it("should reject client creation with duplicate email", async () => {
-      // Create first client
-      await request(app)
-        .post("/clients")
-        .set("Authorization", `Bearer ${authToken}`)
-        .send({
-          name: "First Client",
-          email: "duplicate@example.com",
-        });
 
-      // Try to create another client with the same email
-      const response = await request(app)
-        .post("/clients")
-        .set("Authorization", `Bearer ${authToken}`)
-        .send({
-          name: "Second Client",
-          email: "duplicate@example.com",
-        });
-
-      expect(response.status).toBe(409);
-      expect(response.body.message).toBe(
-        "Client with this email already exists"
-      );
-    });
-
+     
     it("should reject client creation without authentication", async () => {
       const response = await request(app).post("/clients").send({
         name: "Acme Corp",

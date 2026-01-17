@@ -4,6 +4,7 @@ import { Status } from "../models/License";
 import {
   createTestUser,
   createTestClient,
+  createTestProject,
   createTestLicense,
   generateTestToken,
 } from "./helpers/testHelpers";
@@ -16,13 +17,16 @@ describe("Validation Controller", () => {
   beforeEach(async () => {
     const user = await createTestUser();
     const client = await createTestClient(user._id.toString());
+    const project = await createTestProject(client._id.toString());
+    
     userId = user._id.toString();
     clientId = client._id.toString();
+    projectId = project._id.toString();
   });
 
   describe("POST /validate", () => {
     it("should validate an active license successfully", async () => {
-      const license = await createTestLicense(userId, clientId, "project123", {
+      const license = await createTestLicense(userId, clientId, projectId, {
         status: Status.ACTIVE,
         productName: "Test Product",
         customer: "Test Customer",
@@ -59,7 +63,7 @@ describe("Validation Controller", () => {
     });
 
     it("should return invalid for revoked license", async () => {
-      const license = await createTestLicense(userId, clientId, "project123", {
+      const license = await createTestLicense(userId, clientId, projectId, {
         status: Status.REVOKED,
       });
 
@@ -74,7 +78,7 @@ describe("Validation Controller", () => {
     });
 
     it("should return invalid for pending license", async () => {
-      const license = await createTestLicense(userId, clientId, "project123", {
+      const license = await createTestLicense(userId, clientId, projectId, {
         status: Status.PENDING,
       });
 
@@ -89,7 +93,7 @@ describe("Validation Controller", () => {
     });
 
     it("should return invalid for expired license", async () => {
-      const license = await createTestLicense(userId, clientId, "project123", {
+      const license = await createTestLicense(userId, clientId, projectId, {
         status: Status.EXPIRED,
       });
 
@@ -105,9 +109,9 @@ describe("Validation Controller", () => {
     });
   });
 
-  describe("POST /validate/activate", () => {
+  describe("POST validate/activate", () => {
     it("should activate a pending license", async () => {
-      const license = await createTestLicense(userId, clientId, "project123", {
+      const license = await createTestLicense(userId, clientId, projectId, {
         status: Status.PENDING,
       });
 
@@ -123,7 +127,7 @@ describe("Validation Controller", () => {
     });
 
     it("should return success if license is already active", async () => {
-      const license = await createTestLicense(userId, clientId, "project123", {
+      const license = await createTestLicense(userId, clientId, projectId, {
         status: Status.ACTIVE,
       });
 
@@ -155,7 +159,7 @@ describe("Validation Controller", () => {
     });
 
     it("should reject activation for revoked license", async () => {
-      const license = await createTestLicense(userId, clientId, "project123", {
+      const license = await createTestLicense(userId, clientId, projectId, {
         status: Status.REVOKED,
       });
 
@@ -169,7 +173,7 @@ describe("Validation Controller", () => {
     });
 
     it("should reject activation for expired license", async () => {
-      const license = await createTestLicense(userId, clientId, "project123", {
+      const license = await createTestLicense(userId, clientId, projectId, {
         status: Status.EXPIRED,
       });
 
