@@ -41,11 +41,9 @@ describe("Project Controller", () => {
       expect(response.body.project).toBeDefined();
       expect(response.body.license).toBeDefined();
 
-      // Verify project
       expect(response.body.project.name).toBe("Enterprise Project");
       expect(response.body.project.client.toString()).toBe(clientId);
 
-      // Verify license
       expect(response.body.license.key).toBeDefined();
       expect(response.body.license.duration).toBe(12);
       expect(response.body.license.status).toBe(Status.PENDING);
@@ -54,7 +52,6 @@ describe("Project Controller", () => {
         "Domain",
       ]);
 
-      // Verify in database
       const project = await Project.findById(response.body.project._id);
       expect(project).toBeTruthy();
 
@@ -99,7 +96,7 @@ describe("Project Controller", () => {
         .send({
           clientId,
           projectName: "Test Project",
-          duration: 15, // Invalid (>12)
+          duration: 15,
           services: ["Hosting"],
         });
 
@@ -145,7 +142,7 @@ describe("Project Controller", () => {
           clientId,
           projectName: "Test Project",
           duration: 6,
-          services: "API", // Not an array
+          services: "API",
         });
 
       expect(response.status).toBe(400);
@@ -181,11 +178,10 @@ describe("Project Controller", () => {
     });
 
     it("should handle transaction rollback on error", async () => {
-      // This test verifies that if something goes wrong, neither project nor license is created
+
       const initialProjectCount = await Project.countDocuments();
       const initialLicenseCount = await License.countDocuments();
 
-      // Try to create with invalid client ID
       await request(app)
         .post("/projects/createProject")
         .set("Authorization", `Bearer ${authToken}`)
@@ -196,7 +192,6 @@ describe("Project Controller", () => {
           services: ["Hosting"],
         });
 
-      // Verify counts haven't changed (transaction rolled back)
       const finalProjectCount = await Project.countDocuments();
       const finalLicenseCount = await License.countDocuments();
 

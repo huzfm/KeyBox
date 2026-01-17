@@ -46,8 +46,6 @@ describe("License Controller", () => {
       expect(response.body.license.status).toBe(Status.PENDING);
     });
 
-
-
     it("should reject license creation with duration less than 1", async () => {
       const response = await request(app)
         .post("/license/create")
@@ -127,7 +125,7 @@ describe("License Controller", () => {
     it("should return 400 when key is missing", async () => {
       const response = await request(app).patch("/license/revoke/");
 
-      expect(response.status).toBe(404); // Route not found
+      expect(response.status).toBe(404);
     });
   });
 
@@ -173,7 +171,7 @@ describe("License Controller", () => {
     it("should return 400 when user ID is missing", async () => {
       const response = await request(app).get("/license/user/");
 
-      expect(response.status).toBe(404); // Route not found
+      expect(response.status).toBe(404);
     });
   });
 });

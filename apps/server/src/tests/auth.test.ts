@@ -17,7 +17,6 @@ describe("Authentication Controller", () => {
       expect(response.body.message).toBe("Signup successful");
       expect(response.body.userId).toBeDefined();
 
-      // Verify user was created in database
       const user = await User.findById(response.body.userId);
       expect(user).toBeTruthy();
       expect(user?.email).toBe("john@example.com");
@@ -61,10 +60,9 @@ describe("Authentication Controller", () => {
     });
 
     it("should reject signup with duplicate email", async () => {
-      // Create user first
+
       await createTestUser({ email: "john@example.com" });
 
-      // Try to register again
       const response = await request(app).post("/auth/signup").send({
         name: "John Doe",
         email: "john@example.com",
@@ -81,7 +79,7 @@ describe("Authentication Controller", () => {
     let testUserEmail: string;
 
     beforeEach(async () => {
-      // Create a test user before each login test with unique email
+
       testUserEmail = `testuser-${Date.now()}@example.com`;
       await createTestUser({
         email: testUserEmail,
@@ -123,7 +121,7 @@ describe("Authentication Controller", () => {
     });
 
     it("should reject login for OAuth users without password", async () => {
-      // Create OAuth user (no password)
+
       await createTestUser({
         email: "oauth@example.com",
         password_hash: undefined,
@@ -141,7 +139,7 @@ describe("Authentication Controller", () => {
 
   describe("GET /auth/users", () => {
     it("should return all users without password hashes", async () => {
-      // Create multiple users
+
       await createTestUser({ email: "user1@example.com" });
       await createTestUser({ email: "user2@example.com" });
       await createTestUser({ email: "user3@example.com" });
@@ -152,7 +150,6 @@ describe("Authentication Controller", () => {
       expect(response.body.users).toBeDefined();
       expect(response.body.users.length).toBe(3);
 
-      // Verify no password hashes are returned
       response.body.users.forEach((user: any) => {
         expect(user.password_hash).toBeUndefined();
       });

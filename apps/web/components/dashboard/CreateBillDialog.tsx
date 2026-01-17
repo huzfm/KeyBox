@@ -65,18 +65,17 @@ export default function CreateBillDialog({
 
   const handleProjectChange = (projectId: string) => {
     setSelectedProjectId(projectId);
-    
-    // Auto-populate services from project licenses
+
     const project = client.projects?.find(p => p._id === projectId);
     if (project && project.licenses) {
       const serviceSet = new Set<string>();
-      
+
       project.licenses.forEach(license => {
         if (license.services) {
           const services = Array.isArray(license.services) 
             ? license.services 
             : license.services.split(",");
-            
+
           services.forEach(s => {
             const trimmed = s.trim();
             if (trimmed) serviceSet.add(trimmed);
@@ -92,7 +91,7 @@ export default function CreateBillDialog({
         }));
         setItems(newItems);
       } else {
-        // Default if no services found
+
         setItems([{ id: Math.random().toString(), description: "Service Charge", amount: 0 }]);
       }
     }

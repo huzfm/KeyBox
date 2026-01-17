@@ -19,8 +19,6 @@ import {
 } from "@/components/ui/select";
 import { FolderPlus } from "lucide-react";
 
-/* ---------------- TYPES ---------------- */
-
 interface Client {
   _id: string;
   name: string;
@@ -39,8 +37,6 @@ interface CreateProjectProps {
 }
 
 const AVAILABLE_SERVICES = ["Hosting", "Domain"] as const;
-
-/* ---------------- COMPONENT ---------------- */
 
 export default function CreateProject({
   clients,
@@ -63,7 +59,7 @@ export default function CreateProject({
   const handleCreate = async () => {
     const durationNum = typeof duration === 'number' ? duration : parseInt(String(duration));
     if (!clientId || !projectName.trim() || !durationNum || isNaN(durationNum)) return;
-    
+
     setIsCreating(true);
     try {
       await onCreate({ clientId, projectName, duration: durationNum, services });
@@ -113,14 +109,14 @@ export default function CreateProject({
           />
 
           <Input
-          
+
             type="number"
             min={1}
             max={12}
             value={duration}
             onChange={(e) => {
               const value = Number((e.currentTarget as unknown as { value: string }).value);
-              // Enforce max 12 months
+
               if (value > 12) {
                 setDuration(12);
               } else if (value < 1 && value !== 0) {

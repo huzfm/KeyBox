@@ -1,4 +1,4 @@
-// controllers/validateLicense.ts
+
 import { Request, Response } from "express";
 import { License, Status } from "../models/License";
 
@@ -6,7 +6,6 @@ export const validateLicense = async (req: Request, res: Response) => {
   try {
     const { key } = req.body;
 
-    // ❌ No key provided
     if (!key) {
       return res.status(400).json({
         valid: false,
@@ -14,7 +13,6 @@ export const validateLicense = async (req: Request, res: Response) => {
       });
     }
 
-    // 🔎 Check if key exists
     const license = await License.findOne({ key });
 
     if (!license) {
@@ -25,7 +23,6 @@ export const validateLicense = async (req: Request, res: Response) => {
       });
     }
 
-    // ❌ Revoked
     if (license.status === Status.REVOKED) {
       return res.json({
         valid: false,
@@ -41,7 +38,6 @@ export const validateLicense = async (req: Request, res: Response) => {
       });
     }
 
-    // ❌ Expired (status set by cron job)
     if (license.status === Status.EXPIRED) {
       return res.json({
         valid: false,
@@ -51,7 +47,6 @@ export const validateLicense = async (req: Request, res: Response) => {
       });
     }
 
-    // 🟢 Valid and Active
     if (license.status === Status.ACTIVE) {
       return res.json({
         valid: true,
@@ -61,7 +56,6 @@ export const validateLicense = async (req: Request, res: Response) => {
       });
     }
 
-    // 🌀 Unknown/Unexpected status
     return res.json({
       valid: false,
       status: "unknown",
@@ -119,8 +113,6 @@ export const activateLicense = async (req: Request, res: Response) => {
       });
     }
 
-
-  // ✅ ACTIVATE
 const issuedAt = new Date();
 const expiresAt = new Date();
 expiresAt.setMonth(expiresAt.getMonth() + license.duration);

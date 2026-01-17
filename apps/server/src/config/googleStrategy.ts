@@ -20,25 +20,24 @@ passport.use(
     ) => {
       try {
         const email = profile.emails?.[0]?.value;
-        
+
         if (!email) {
           return done(new Error("No email found in Google profile"));
         }
 
-        // Find or create user in database
         let user = await User.findOne({ googleId: profile.id });
 
         if (!user) {
-          // Check if user exists with this email (for linking accounts)
+
           user = await User.findOne({ email });
 
           if (user) {
-            // Link Google account to existing user
+
             user.googleId = profile.id;
             user.profilePicture = profile.photos?.[0]?.value;
             await user.save();
           } else {
-            // Create new user
+
             user = await User.create({
               name: profile.displayName,
               email,
@@ -56,12 +55,10 @@ passport.use(
   )
 );
 
-// Serialize user - store user ID in session
 passport.serializeUser((user: any, done) => {
   done(null, user._id.toString());
 });
 
-// Deserialize user - retrieve user from database by ID
 passport.deserializeUser(async (id: string, done) => {
   try {
     const user = await User.findById(id);

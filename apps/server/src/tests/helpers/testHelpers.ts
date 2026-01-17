@@ -5,9 +5,6 @@ import { Client } from "../../models/Client";
 import { Project } from "../../models/Project";
 import { License, Status } from "../../models/License";
 
-/**
- * Generate a JWT token for testing
- */
 export const generateTestToken = (userId: string, email: string = "test@example.com", role: Role = Role.DEVELOPER): string => {
   return jwt.sign(
     { userId, email, role },
@@ -16,15 +13,11 @@ export const generateTestToken = (userId: string, email: string = "test@example.
   );
 };
 
-/**
- * Create a test user
- */
 export const createTestUser = async (overrides: any = {}) => {
   const hashedPassword = await bcrypt.hash("password123", 10);
-  
-  // Generate unique email to avoid duplicate key errors
+
   const uniqueEmail = overrides.email || `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}@example.com`;
-  
+
   return await User.create({
     name: "Test User",
     email: uniqueEmail,
@@ -34,9 +27,6 @@ export const createTestUser = async (overrides: any = {}) => {
   });
 };
 
-/**
- * Create a test client
- */
 export const createTestClient = async (userId: string, overrides: any = {}) => {
   return await Client.create({
     name: "Test Client",
@@ -46,9 +36,6 @@ export const createTestClient = async (userId: string, overrides: any = {}) => {
   });
 };
 
-/**
- * Create a test project
- */
 export const createTestProject = async (clientId: string, overrides: any = {}) => {
   return await Project.create({
     name: "Test Project",
@@ -57,9 +44,6 @@ export const createTestProject = async (clientId: string, overrides: any = {}) =
   });
 };
 
-/**
- * Create a test license
- */
 export const createTestLicense = async (
   userId: string,
   clientId: string,
@@ -79,14 +63,11 @@ export const createTestLicense = async (
     user: userId,
     client: clientId,
     project: projectId,
-    services: ["Hosting", "Domain"], // Use valid enum values
+    services: ["Hosting", "Domain"],
     ...overrides,
   });
 };
 
-/**
- * Create a complete test setup (user, client, project, license)
- */
 export const createTestSetup = async () => {
   const user = await createTestUser();
   const client = await createTestClient(user._id.toString());

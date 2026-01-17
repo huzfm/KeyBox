@@ -30,7 +30,7 @@ protectNodeApp({
   port: process.env.PORT,
   productName: "MyNodeApp",
   key: process.env.KEYBOX_LICENSE_KEY
-  intervalSeconds: 10, // demo (10s). prod: 86400
+  intervalSeconds: 10,
 });`;
 
   const pythonCode = `# Python SDK coming soon!
@@ -46,13 +46,13 @@ from keybox import protect_app
 )
 def main():
     print("Your licensed application is running!")
-    
+
 if __name__ == "__main__":
     main()`;
 
   return (
     <main className="relative overflow-hidden min-h-screen">
-      {/* GRID BACKGROUND */}
+      {}
       <div
         className="
           pointer-events-none
@@ -63,10 +63,10 @@ if __name__ == "__main__":
         "
       />
 
-      {/* CONTENT */}
+      {}
       <section className="relative z-10 py-16 px-4">
         <div className="max-w-4xl mx-auto">
-          {/* HEADER */}
+          {}
           <div className="text-center mb-12">
             <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4 font-mono">
               API Usage
@@ -76,7 +76,7 @@ if __name__ == "__main__":
             </p>
           </div>
 
-          {/* LANGUAGE TOGGLE */}
+          {}
          <div className="mx-auto mb-8 w-fit rounded-xl border border-zinc-800 bg-zinc-950 p-1 shadow-sm">
   <div className="flex gap-1">
     <button
@@ -107,17 +107,17 @@ if __name__ == "__main__":
   </div>
 </div>
 
-          {/* CONTENT BASED ON LANGUAGE */}
+          {}
           <div className="space-y-8">
             {selectedLanguage === "nodejs" && (
               <>
-                {/* INSTALLATION SECTION */}
+                {}
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-4">
                     Installation
                   </h2>
-                  
-                  {/* PACKAGE MANAGER SELECTOR */}
+
+                  {}
                   <div className="flex gap-2 mb-4 flex-wrap">
                     {(["npm", "pnpm", "yarn", "bun"] as PackageManager[]).map(
                       (pm) => (
@@ -146,7 +146,7 @@ if __name__ == "__main__":
                   />
                 </div>
 
-                {/* USAGE SECTION */}
+                {}
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-4">Usage</h2>
                   <CodeBlock
@@ -156,14 +156,12 @@ if __name__ == "__main__":
                   />
                 </div>
 
-               
-                
               </>
             )}
 
             {selectedLanguage === "python" && (
               <>
-                {/* INSTALLATION SECTION */}
+                {}
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-4">
                     Installation
@@ -175,7 +173,7 @@ if __name__ == "__main__":
                   />
                 </div>
 
-                {/* USAGE SECTION */}
+                {}
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-4">Usage</h2>
                   <CodeBlock
@@ -185,16 +183,8 @@ if __name__ == "__main__":
                   />
                 </div>
 
-                {/* COMING SOON NOTICE */}
-                {/* <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6">
-                  <h3 className="text-xl font-bold text-yellow-500 mb-2">
-                    Coming Soon
-                  </h3>
-                  <p className="text-zinc-300">
-                    Python SDK is currently under development. Stay tuned for
-                    updates!
-                  </p>
-                </div> */}
+                {}
+                {}
               </>
             )}
           </div>

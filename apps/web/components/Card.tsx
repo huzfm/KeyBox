@@ -39,7 +39,7 @@ const features = [
 export default function Home() {
   return (
     <main className="relative overflow-hidden">
-      {/* GRID BACKGROUND */}
+      {}
       <div
         className="
           pointer-events-none
@@ -50,7 +50,7 @@ export default function Home() {
         "
       />
 
-      {/* CONTENT */}
+      {}
       <section className="relative z-10 py-16 overflow-hidden">
         <div className="text-center mb-12">
           <h2 className="text-3xl sm:text-4xl font-bold text-white">
@@ -61,7 +61,7 @@ export default function Home() {
           </p>
         </div>
 
-        {/* SCROLLER */}
+        {}
         <div className="relative w-full overflow-hidden">
           <div className="flex w-max animate-scroll hover:paused">
             {[...features, ...features].map((item, index) => {
@@ -115,7 +115,7 @@ export default function Home() {
             })}
           </div>
 
-          {/* EDGE FADES */}
+          {}
           <div className="absolute inset-y-0 left-0 w-24 bg-linear-to-r from-background to-transparent pointer-events-none z-20" />
           <div className="absolute inset-y-0 right-0 w-24 bg-linear-to-l from-background to-transparent pointer-events-none z-20" />
         </div>

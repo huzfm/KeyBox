@@ -53,20 +53,20 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
-      {/* GRID BACKGROUND */}
+      {}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-size[35px_35px]" />
 
       <div className="relative z-10 flex min-h-screen">
-        {/* LEFT SIDE — VISUAL */}
+        {}
         <div className="hidden lg:flex w-1/2 items-center justify-center p-8">
           <div className="relative flex flex-col items-center gap-8">
-            {/* Glow */}
+            {}
             <div className="absolute w-80 h-80 bg-blue-600/30 rounded-full blur-3xl" />
 
-            {/* Icon */}
+            {}
             <UserPlus className="w-32 h-32 text-white relative z-10" />
 
-            {/* Text */}
+            {}
             <div className="relative z-10 text-center space-y-2">
               <p className="text-4xl font-semibold text-white">
                 Create your account
@@ -78,7 +78,7 @@ export default function SignupPage() {
           </div>
         </div>
 
-        {/* RIGHT SIDE — SIGNUP FORM */}
+        {}
         <div className="w-full lg:w-1/2 flex items-center justify-center p-6">
           <div className="w-full max-w-md">
             <form
@@ -95,7 +95,7 @@ export default function SignupPage() {
                 Create an Account
               </h1>
 
-              {/* NAME */}
+              {}
               <div>
                 <label className="text-sm font-medium text-black">Name</label>
                 <input
@@ -107,7 +107,7 @@ export default function SignupPage() {
                 />
               </div>
 
-              {/* EMAIL */}
+              {}
               <div>
                 <label className="text-sm font-medium text-black">Email</label>
                 <input
@@ -120,7 +120,7 @@ export default function SignupPage() {
                 />
               </div>
 
-              {/* PASSWORD */}
+              {}
               <div>
                 <label className="text-sm font-medium text-black">
                   Password
@@ -139,7 +139,7 @@ export default function SignupPage() {
                 </p>
               </div>
 
-              {/* CONFIRM PASSWORD */}
+              {}
               <div>
                 <label className="text-sm font-medium text-black">
                   Confirm Password
@@ -154,7 +154,7 @@ export default function SignupPage() {
                 />
               </div>
 
-              {/* BUTTON — BLUE */}
+              {}
               <button
                 disabled={isPending}
                 className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50"
@@ -168,7 +168,7 @@ export default function SignupPage() {
                 </p>
               )}
 
-              {/* DIVIDER */}
+              {}
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-black/20"></div>
@@ -178,7 +178,7 @@ export default function SignupPage() {
                 </div>
               </div>
 
-              {/* GOOGLE SIGN-UP BUTTON */}
+              {}
               <a
                 href="https://api-keybox.vercel.app/auth/google"
                 className="w-full flex items-center justify-center gap-3 py-2.5 rounded-xl bg-black/80 text-white font-semibold"
@@ -204,7 +204,7 @@ export default function SignupPage() {
                 Sign up with Google
               </a>
 
-              {/* LOGIN LINK — BLUE */}
+              {}
               <p className="text-center text-sm text-black font-semibold">
                 Already have an account?{" "}
                 <a

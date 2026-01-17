@@ -20,7 +20,7 @@ describe("Dashboard Controller", () => {
 
   describe("GET /dashboard", () => {
     it("should return full dashboard data for user", async () => {
-      // Create test data
+
       const client1 = await createTestClient(userId, {
         name: "Client 1",
         email: "client1@example.com",
@@ -62,24 +62,19 @@ describe("Dashboard Controller", () => {
       expect(response.body.data).toBeDefined();
       expect(Array.isArray(response.body.data)).toBe(true);
 
-      // Verify nested structure
       const dashboardData = response.body.data;
       expect(dashboardData.length).toBe(2);
 
-      // Each client should have projects
       dashboardData.forEach((client: any) => {
         expect(client.projects).toBeDefined();
         expect(Array.isArray(client.projects)).toBe(true);
 
-        // Each project should have licenses
         client.projects.forEach((project: any) => {
           expect(project.licenses).toBeDefined();
           expect(Array.isArray(project.licenses)).toBe(true);
         });
       });
     });
-
-   
 
     it("should return empty data when user has no clients", async () => {
       const response = await request(app)
@@ -125,10 +120,9 @@ describe("Dashboard Controller", () => {
     });
 
     it("should only return data for authenticated user", async () => {
-      // Create data for first user
+
       await createTestClient(userId);
 
-      // Create second user with their own data
       const user2 = await createTestUser({ email: "user2@example.com" });
       await createTestClient(user2._id.toString(), {
         email: "client2@example.com",
@@ -139,7 +133,7 @@ describe("Dashboard Controller", () => {
         .set("Authorization", `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
-      expect(response.body.clientsCount).toBe(1); // Only first user's client
+      expect(response.body.clientsCount).toBe(1);
     });
   });
 });

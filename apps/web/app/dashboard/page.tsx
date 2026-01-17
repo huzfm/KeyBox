@@ -35,32 +35,28 @@ function DashboardContent() {
   const [isChecking, setIsChecking] = useState(true);
   const [tokenProcessed, setTokenProcessed] = useState(false);
 
-  // Handle OAuth token from URL (Google login)
   useEffect(() => {
     const token = searchParams.get("token");
     if (token) {
-      // Store the token in cookies
+
       Cookies.set("jwt", token, {
         expires: 7,
         sameSite: "strict",
       });
-      
-      
-      // Mark token as processed
+
       setTokenProcessed(true);
-      
-      // Clean URL by removing token parameter
+
       router.replace("/dashboard");
     } else {
-      // No token in URL, mark as processed
+
       setTokenProcessed(true);
     }
   }, [searchParams, router]);
 
   const isAuthorized = useMemo(() => {
-    // Don't check auth until token is processed
+
     if (!tokenProcessed) return false;
-    
+
     const jwt = Cookies.get("jwt");
     return !!jwt;
   }, [tokenProcessed]);
@@ -80,7 +76,7 @@ function DashboardContent() {
   }, [tokenProcessed]);
 
   useEffect(() => {
-    // Only mark as done checking once token is processed
+
     if (tokenProcessed) {
       setIsChecking(false);
     }
@@ -91,7 +87,6 @@ function DashboardContent() {
     router.push("/login");
   };
 
-  // Show loading state while checking auth
   if (isChecking) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -100,22 +95,21 @@ function DashboardContent() {
     );
   }
 
-  // Show unauthorized UI if no JWT
   if (!isAuthorized) {
     return (
       <div className="min-h-screen bg-background relative flex items-center justify-center">
-        {/* Grid Background */}
+        {}
         <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:35px_35px]" />
-        
+
         <div className="relative z-10 text-center px-4">
-          
+
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
             Access Denied
           </h1>
           <p className="text-slate-400 mb-8 max-w-md mx-auto">
             You need to be logged in to access the dashboard. Please sign in with your developer account.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/login">
               <Button className="bg-white text-black hover:bg-slate-200 font-medium px-6">
@@ -135,10 +129,10 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-background relative">
-      {/* Grid Background */}
+      {}
       <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:35px_35px]" />
-      
-      {/* Header */}
+
+      {}
       <div className="bg-card/50 top-0 z-10">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           <div className="flex items-center justify-between gap-2 sm:gap-3">
@@ -151,7 +145,7 @@ function DashboardContent() {
               </p>
             </div>
 
-            {/* User Avatar Dropdown */}
+            {}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="h-9 w-9 rounded-full bg-slate-700 border border-slate-600 flex items-center justify-center text-slate-200 font-medium text-sm hover:bg-slate-600 transition-colors duration-150 focus:outline-none focus:ring-1 focus:ring-slate-500">
@@ -159,16 +153,16 @@ function DashboardContent() {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" sideOffset={8} className="w-56 p-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg">
-                {/* Email Display */}
+                {}
                 <div className="px-3 py-2">
                   <p className="text-xs text-slate-500 uppercase tracking-wide">Signed in as</p>
                   <p className="text-sm text-white font-medium mt-0.5 truncate">
                     {userInfo.email || "user@example.com"}
                   </p>
                 </div>
-                
+
                 <DropdownMenuSeparator className="bg-slate-700 my-1" />
-                
+
                 <DropdownMenuItem 
                   onClick={handleLogout}
                   className="flex items-center gap-2 px-3 py-2 mx-1 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer text-sm"
@@ -182,16 +176,16 @@ function DashboardContent() {
         </div>
       </div>
 
-      {/* Main Content */}
+      {}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
-          {/* Create Section */}
+          {}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <CreateClient onCreate={createClient.mutateAsync} />
             <CreateProject clients={clients} onCreate={createProject.mutateAsync} />
           </div>
 
-          {/* Clients List Section */}
+          {}
           <div>
             <div className="mb-6">
               <h2 className="text-xl font-semibold">Clients & Projects</h2>

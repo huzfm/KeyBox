@@ -1,4 +1,4 @@
-// middleware/jwt.ts
+
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
@@ -28,8 +28,8 @@ export const auth = (req: AuthRequest, res: Response, next: NextFunction) => {
       role: string;
     };
 
-    req.userId = decoded.userId; // Extract user ID
-    req.userRole = decoded.role; // Extract role (optional for permissions)
+    req.userId = decoded.userId;
+    req.userRole = decoded.role;
 
     next();
   } catch (err) {

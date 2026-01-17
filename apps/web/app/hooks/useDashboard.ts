@@ -1,4 +1,4 @@
-// hooks/useDashboard.ts
+
 import { useQuery } from "@tanstack/react-query";
 import { fetchDashboardData } from "../api/license";
 import Cookies from "js-cookie";

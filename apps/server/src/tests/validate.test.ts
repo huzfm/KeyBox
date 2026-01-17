@@ -18,7 +18,7 @@ describe("Validation Controller", () => {
     const user = await createTestUser();
     const client = await createTestClient(user._id.toString());
     const project = await createTestProject(client._id.toString());
-    
+
     userId = user._id.toString();
     clientId = client._id.toString();
     projectId = project._id.toString();

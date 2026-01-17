@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 dotenv.config();
 
-mongoose.set("bufferCommands", false); // fail fast
+mongoose.set("bufferCommands", false);
 
 const MONGO_URI = process.env.MONGO_URI as string;
 

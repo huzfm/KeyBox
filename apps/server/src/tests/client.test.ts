@@ -30,7 +30,6 @@ describe("Client Controller", () => {
       expect(response.body.client.email).toBe("contact@acmecorp.com");
       expect(response.body.client.owner.toString()).toBe(userId);
 
-      // Verify client was created in database
       const client = await Client.findById(response.body.client._id);
       expect(client).toBeTruthy();
       expect(client?.name).toBe("Acme Corp");
@@ -60,8 +59,6 @@ describe("Client Controller", () => {
       expect(response.body.message).toBe("Client email required");
     });
 
-
-     
     it("should reject client creation without authentication", async () => {
       const response = await request(app).post("/clients").send({
         name: "Acme Corp",

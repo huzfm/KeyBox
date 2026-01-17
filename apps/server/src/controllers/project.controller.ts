@@ -10,10 +10,10 @@ export const createProjectWithLicense = async (
   req: AuthRequest,
   res: Response
 ) => {
-  // Skip transactions in test environment (MongoDB Memory Server doesn't support them)
+
   const useTransactions = process.env.NODE_ENV !== 'test';
   const session = useTransactions ? await mongoose.startSession() : null;
-  
+
   if (session) session.startTransaction();
 
   try {
@@ -26,13 +26,12 @@ export const createProjectWithLicense = async (
 
     if (!duration || duration < 1 || duration > 12)
       return res.status(400).json({ message: "Invalid duration" });
-    
+
     if(!Array.isArray(services) || services.length === 0)
       return res.status(400).json({ message: "At least one service is required" });
 
     if (!req.userId) return res.status(401).json({ message: "Unauthorized" });
 
-    // Validate client exists (needed since we removed it from transaction)
     const client = await Client.findById(clientId);
     if (!client) {
       if (session) {
@@ -42,7 +41,6 @@ export const createProjectWithLicense = async (
       return res.status(404).json({ message: "Client not found" });
     }
 
-    // 2️⃣ Create Project
     const project = await Project.create(
       [
         {
@@ -53,7 +51,6 @@ export const createProjectWithLicense = async (
       session ? { session } : {}
     );
 
-    // 3️⃣ Create License
     const issuedAt = new Date();
     const expiresAt = new Date();
     expiresAt.setMonth(issuedAt.getMonth() + duration);

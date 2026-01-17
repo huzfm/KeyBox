@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api";
 
-/* ---------------- DASHBOARD ---------------- */
 export const useDashboard = () =>
   useQuery({
     queryKey: ["dashboard"],
@@ -11,7 +10,6 @@ export const useDashboard = () =>
     },
   });
 
-/* ---------------- CREATE CLIENT ---------------- */
 export const useCreateClient = () => {
   const qc = useQueryClient();
 
@@ -24,7 +22,6 @@ export const useCreateClient = () => {
   });
 };
 
-/* ---------------- CREATE PROJECT + LICENSE ---------------- */
 export const useCreateProject = () => {
   const qc = useQueryClient();
 
@@ -41,7 +38,6 @@ export const useCreateProject = () => {
   });
 };
 
-/* ---------------- TOGGLE LICENSE ---------------- */
 export const useToggleLicense = () => {
   const qc = useQueryClient();
 

@@ -5,7 +5,6 @@ export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
 });
 
-// attach jwt automatically
 api.interceptors.request.use((config) => {
   const jwt = Cookies.get("jwt");
   if (jwt) {
