@@ -30,7 +30,7 @@ protectNodeApp({
   port: process.env.PORT,
   productName: "MyNodeApp",
   key: process.env.KEYBOX_LICENSE_KEY
-  intervalSeconds: 10,
+  intervalSeconds: 86400, // once in 24hours
 });`;
 
   const pythonCode = `# Python SDK coming soon!
