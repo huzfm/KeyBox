@@ -4,7 +4,7 @@ import passport from 'passport'
 import googleAuthRoutes from "./routes/googleAuth.routes"
 import "./config/googleStrategy"
 
-import express, { Application, Express, Request, Response } from "express";
+import express, { Application, Request, Response } from "express";
 import morgan from "morgan";
 import helmet from "helmet";
 import cors from "cors";

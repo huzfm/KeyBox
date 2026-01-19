@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus } from "lucide-react";
+import { toast } from "sonner";
 
 interface CreateClientProps {
   onCreate: (data: { name: string; email: string }) => Promise<void> | void;
@@ -31,8 +32,11 @@ export default function CreateClient({ onCreate }: CreateClientProps) {
     setIsCreating(true);
     try {
       await onCreate({ name, email });
+      toast.success("Client created successfully!");
       setName("");
       setEmail("");
+    } catch (error) {
+      toast.error("Failed to create client");
     } finally {
       setIsCreating(false);
     }

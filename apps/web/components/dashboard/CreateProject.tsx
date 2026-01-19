@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FolderPlus } from "lucide-react";
+import { toast } from "sonner";
 
 interface Client {
   _id: string;
@@ -63,8 +64,11 @@ export default function CreateProject({
     setIsCreating(true);
     try {
       await onCreate({ clientId, projectName, duration: durationNum, services });
+      toast.success("Project created successfully!");
       setProjectName("");
       setDuration("");
+    } catch (error) {
+      toast.error("Failed to create project");
     } finally {
       setIsCreating(false);
     }

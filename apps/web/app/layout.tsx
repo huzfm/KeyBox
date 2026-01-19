@@ -1,10 +1,7 @@
-
-
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "./provider";
-import Key from "lucide-react"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,7 +17,7 @@ export const metadata: Metadata = {
   title: "KeyBox",
   description: "KeyBox",
   icons: {
-    icon:"/key.svg" ,
+    icon: "/key.svg",
   },
 };
 
