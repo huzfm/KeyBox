@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import Cookies from "js-cookie";
 import type { AxiosError } from "axios";
-import { Lock, LockOpen, Mail } from "lucide-react";
+import { Lock, LockOpen, Mail, Eye, EyeOff } from "lucide-react";
 import { loginUser } from "@/app/api/auth";
 
 type APIError = {
@@ -17,6 +17,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [msg, setMsg] = useState("");
   const [unlocked, setUnlocked] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [form, setForm] = useState({
     email: "",
@@ -100,13 +101,24 @@ export default function LoginPage() {
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black" />
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     required
                     value={form.password}
                     onChange={(e) => update("password", e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-black bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-black bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-600"
                     placeholder="••••••••"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-black hover:text-gray-600 transition"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
                 </div>
               </div>
 
