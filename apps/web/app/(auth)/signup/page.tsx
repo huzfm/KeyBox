@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { signupUser } from "@/app/api/auth";
 import type { AxiosError } from "axios";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Eye, EyeOff } from "lucide-react";
 
 type APIError = {
   message?: string;
@@ -14,6 +14,8 @@ type APIError = {
 export default function SignupPage() {
   const router = useRouter();
   const [msg, setMsg] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -125,15 +127,28 @@ export default function SignupPage() {
                 <label className="text-sm font-medium text-black">
                   Password
                 </label>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  minLength={6}
-                  value={form.password}
-                  onChange={(e) => update("password", e.target.value)}
-                  required
-                  className="mt-2 w-full rounded-lg border border-black p-3 bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-600"
-                />
+                <div className="relative mt-2">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    minLength={6}
+                    value={form.password}
+                    onChange={(e) => update("password", e.target.value)}
+                    required
+                    className="w-full rounded-lg border border-black p-3 pr-10 bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-black hover:text-gray-600 transition"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
                 <p className="mt-1 text-xs text-black/60">
                   Minimum 6 characters required
                 </p>
@@ -144,14 +159,27 @@ export default function SignupPage() {
                 <label className="text-sm font-medium text-black">
                   Confirm Password
                 </label>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={form.confirmPassword}
-                  onChange={(e) => update("confirmPassword", e.target.value)}
-                  required
-                  className="mt-2 w-full rounded-lg border border-black p-3 bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-600"
-                />
+                <div className="relative mt-2">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={form.confirmPassword}
+                    onChange={(e) => update("confirmPassword", e.target.value)}
+                    required
+                    className="w-full rounded-lg border border-black p-3 pr-10 bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-black hover:text-gray-600 transition"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               {}
