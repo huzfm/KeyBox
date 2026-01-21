@@ -2,6 +2,7 @@ import passport from "passport";
 import { Strategy as GoogleStrategy, Profile } from "passport-google-oauth20";
 import dotenv from "dotenv";
 import { User } from "../models/User";
+import { connectDB } from "../lib/db";
 
 dotenv.config();
 
@@ -20,6 +21,7 @@ passport.use(
     },
     async (_accessToken, _refreshToken, profile: Profile, done) => {
       try {
+        await connectDB()
         if (!profile.emails?.length) {
           return done(new Error("Google account has no email"));
         }

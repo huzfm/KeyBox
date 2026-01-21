@@ -1,22 +1,13 @@
 import mongoose from "mongoose";
-import dotenv from "dotenv";
-dotenv.config();
 
-mongoose.set("bufferCommands", false);
+const MONGO_URI = process.env.MONGO_URI!;
 
-const MONGO_URI = process.env.MONGO_URI as string;
-
-if (!MONGO_URI) {
-  throw new Error("MONGO_URI is not defined");
-}
+if (!MONGO_URI) throw new Error("MONGO_URI missing");
 
 let cached = (global as any).mongoose;
 
 if (!cached) {
-  cached = (global as any).mongoose = {
-    conn: null,
-    promise: null,
-  };
+  cached = (global as any).mongoose = { conn: null, promise: null };
 }
 
 export async function connectDB() {
@@ -24,7 +15,8 @@ export async function connectDB() {
 
   if (!cached.promise) {
     cached.promise = mongoose.connect(MONGO_URI, {
-      serverSelectionTimeoutMS: 5000,
+      bufferCommands: false,
+      serverSelectionTimeoutMS: 10000,
     });
   }
 
