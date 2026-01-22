@@ -69,7 +69,7 @@ if __name__ == "__main__":
           {}
           <div className="text-center mb-12">
             <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4 font-mono">
-              API Usage
+              SDK Usage
             </h1>
             <p className="text-lg text-muted-foreground">
               Integrate KeyBox into your application with our SDK

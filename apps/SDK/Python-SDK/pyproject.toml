@@ -1,0 +1,9 @@
+[project]
+name = "keybox-sdk"
+version = "0.1.0"
+description = "KeyBox licensing SDK for Python & FastAPI"
+dependencies = ["requests"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
