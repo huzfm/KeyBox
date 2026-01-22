@@ -33,22 +33,27 @@ protectNodeApp({
   intervalSeconds: 86400, // once in 24hours
 });`;
 
-  const pythonCode = `# Python SDK coming soon!
-# Stay tuned for updates
+  const pythonCode = `import os
+import sys
+from pathlib import Path
+from fastapi import FastAPI
 
-from keybox import protect_app
 
-# Protect your Python application
-@protect_app(
-    product_name="your-product-name",
-    license_key="your-license-key",
-    api_url="https://api-keybox.vercel.app"
+from KeyBox_SDK import protect_fastapi_app
+
+app = FastAPI()
+
+@app.get("/")
+def root():
+    return {"message": "Your app is licensed and running."}
+
+protect_fastapi_app(
+    app=app,
+    product_name="MyPythonApp",
+    key="696-BFED-B65E-41D6",
+    interval_seconds=86400,  # once per 24h
 )
-def main():
-    print("Your licensed application is running!")
-
-if __name__ == "__main__":
-    main()`;
+`;
 
   return (
     <main className="relative overflow-hidden min-h-screen">
