@@ -1,17 +1,25 @@
 import requests
 import threading
-import time
 from datetime import datetime
+import os
 
 interval_thread = None
 stop_event = threading.Event()
 last_state = "unknown"
 
 
+# --------------------
+# Logger
+# --------------------
+
 def log(level: str, message: str, meta: dict | None = None):
     time_str = datetime.utcnow().isoformat()
     print(f"[{time_str}] [KEYBOX] [{level}] {message}", meta or "")
 
+
+# --------------------
+# Activation
+# --------------------
 
 def activate_license(
     *,
@@ -47,6 +55,10 @@ def activate_license(
     return data
 
 
+# --------------------
+# Background Daemon
+# --------------------
+
 def start_license_daemon(
     *,
     product_name: str,
@@ -78,18 +90,20 @@ def start_license_daemon(
                 raise RuntimeError("License server did not return JSON")
 
             data = res.json()
-            current_state = "valid" if data.get("valid") else "invalid"
+            valid = data.get("valid", False)
+            status = data.get("status", "invalid")
+            current_state = "valid" if valid else status or "invalid"
 
             if current_state != last_state:
                 log("INFO", "License state changed", {
                     "from": last_state,
                     "to": current_state,
-                    "status": data.get("status"),
+                    "status": status,
                 })
 
                 last_state = current_state
 
-                if current_state == "valid":
+                if valid:
                     on_start and on_start(data)
                 else:
                     on_stop and on_stop(data)
@@ -119,11 +133,14 @@ def start_license_daemon(
 
 def stop_license_daemon():
     global last_state
-
     stop_event.set()
     last_state = "unknown"
     log("INFO", "License daemon stopped")
 
+
+# --------------------
+# FastAPI Protector
+# --------------------
 
 def protect_fastapi_app(
     *,
@@ -134,11 +151,11 @@ def protect_fastapi_app(
     interval_seconds: int = 86400,
 ):
     from fastapi import FastAPI
-    import sys
 
     if not app or not isinstance(app, FastAPI):
         raise ValueError("FastAPI app instance is required")
 
+    # Activate once before allowing startup
     activate_license(
         product_name=product_name,
         key=key,
@@ -146,8 +163,14 @@ def protect_fastapi_app(
     )
 
     def on_stop(data):
-        log("ERROR", "License invalid → shutting down app", data)
-        sys.exit(1)
+        status = data.get("status", "invalid")
+
+        if status in ("revoked", "expired"):
+            log("ERROR", f"License {status.upper()} → shutting down server", data)
+        else:
+            log("ERROR", "License INVALID → shutting down server", data)
+
+        os._exit(1)  # hard kill server process
 
     @app.on_event("startup")
     def _keybox_start():
