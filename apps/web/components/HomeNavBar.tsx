@@ -20,6 +20,9 @@ export default function HomeNavbar() {
           </div>
           <span className="text-lg sm:text-xl lg:text-2xl text-white font-bold truncate font-mono ">
             KeyBox
+            <span className="text-xs font-semibold">
+             {' '}  v1.0.0
+              </span> 
           </span>
         </div>
 
