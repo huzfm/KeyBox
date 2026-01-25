@@ -29,7 +29,7 @@ export default function HomeNavbar() {
         {}
         <div className="flex items-center gap-3 sm:gap-5">
           <a
-            href="https://github.com/your-repo"
+            href="https://github.com/huzfm/keybox"
             target="_blank"
             rel="noopener noreferrer"
             className="text-white transition"
@@ -38,7 +38,7 @@ export default function HomeNavbar() {
           </a>
 
           <a
-            href="https://twitter.com/your-handle"
+            href="https://x.com/huzfm"
             target="_blank"
             rel="noopener noreferrer"
             className="text-white transition"
