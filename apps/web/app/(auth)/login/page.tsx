@@ -1,13 +1,14 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import Cookies from "js-cookie";
 import type { AxiosError } from "axios";
 import { Lock, LockOpen, Mail, Eye, EyeOff } from "lucide-react";
 import { loginUser } from "@/app/api/auth";
+import { toast } from "sonner";
 
 type APIError = {
   message?: string;
@@ -15,6 +16,7 @@ type APIError = {
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [msg, setMsg] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -23,6 +25,19 @@ export default function LoginPage() {
     email: "",
     password: "",
   });
+
+  useEffect(() => {
+    const error = searchParams.get("error");
+    if (error) {
+      const errorMessages: Record<string, string> = {
+        oauth_error: "Google sign-in failed. Please try again.",
+        no_user: "Could not retrieve user information from Google.",
+        server_error: "Server error during sign-in. Please try again later.",
+      };
+      toast.error(errorMessages[error] || "An error occurred during sign-in.");
+      router.replace("/login");
+    }
+  }, [searchParams, router]);
 
   const update = (key: string, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -53,16 +68,16 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
-      {}
+       
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-size-[35px_35px]" />
 
       <div className="relative z-10 flex min-h-screen">
-        {}
+         
         <div className="hidden lg:flex w-1/2 items-center justify-center p-8">
           <StaticLock unlock={unlocked} />
         </div>
 
-        {}
+         
         <div className="w-full lg:w-1/2 flex items-center justify-center p-6">
           <div className="w-full max-w-sm">
             <form
@@ -77,7 +92,7 @@ export default function LoginPage() {
                 </p>
               </div>
 
-              {}
+               
               <div className="space-y-2">
                 <label className="text-sm font-medium text-black">Email</label>
                 <div className="relative">
@@ -93,7 +108,7 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {}
+               
               <div className="space-y-2">
                 <label className="text-sm font-medium text-black">
                   Password
@@ -122,7 +137,7 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {}
+               
               <button
                 disabled={isPending}
                 className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-semibold hover:bg-blue-700 active:scale-95 transition"
@@ -136,7 +151,7 @@ export default function LoginPage() {
                 </p>
               )}
 
-              {}
+               
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-black/20"></div>
@@ -146,9 +161,9 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {}
+               
               <a
-                href="https://api-keybox.vercel.app/auth/google"
+                href={`${process.env.NEXT_PUBLIC_API_URL}auth/google`}
                 className="w-full flex items-center justify-center gap-3 py-2.5 rounded-xl bg-black/80 text-white font-semibold"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -172,7 +187,7 @@ export default function LoginPage() {
                 Sign in with Google
               </a>
 
-              {}
+               
               <p className="text-center text-sm text-black font-semibold mt-6">
                 Don&apos;t have an account?{" "}
                 <a
@@ -193,10 +208,10 @@ export default function LoginPage() {
 function StaticLock({ unlock }: { unlock: boolean }) {
   return (
     <div className="relative flex flex-col items-center gap-8">
-      {}
+       
       <div className="absolute w-80 h-80 bg-blue-600/30 rounded-full blur-3xl" />
 
-      {}
+       
       <div className="relative z-10">
         {unlock ? (
           <LockOpen className="w-40 h-40 text-white" />
@@ -205,7 +220,7 @@ function StaticLock({ unlock }: { unlock: boolean }) {
         )}
       </div>
 
-      {}
+       
       <p className="relative z-10 text-3xl font-semibold tracking-wide text-white">
         {unlock ? "Unlocked" : "Locked"}
       </p>
