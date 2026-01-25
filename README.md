@@ -18,12 +18,13 @@ KeyBox/
 ├── apps/
 │   ├── server/                 # Backend API (Node.js)
 │   └── web/                    # Frontend dashboard (Next.js)
-│
-├── packages/
 │   └── sdk/
-│       ├── node-sdk/           # Node.js SDK
+│       ├── node-sdk/           # Node.js SDK        
 │       └── python-sdk/         # Python FastAPI SDK
-│
+├── packages/
+│       ├── eslint-config/
+│       ├── typescript-config/
+│       ├── ui/   
 ├── .github/
 ├── .vscode/
 ├── package.json
