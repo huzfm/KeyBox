@@ -13,10 +13,10 @@ describe("Client Controller", () => {
     authToken = generateTestToken(userId);
   });
 
-  describe("POST /clients", () => {
+  describe("POST /api/v1/clients", () => {
     it("should successfully create a client", async () => {
       const response = await request(app)
-        .post("/clients")
+        .post("/api/v1/clients")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
           name: "Acme Corp",
@@ -37,7 +37,7 @@ describe("Client Controller", () => {
 
     it("should reject client creation without name", async () => {
       const response = await request(app)
-        .post("/clients")
+        .post("/api/v1/clients")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
           email: "contact@acmecorp.com",
@@ -49,7 +49,7 @@ describe("Client Controller", () => {
 
     it("should reject client creation without email", async () => {
       const response = await request(app)
-        .post("/clients")
+        .post("/api/v1/clients")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
           name: "Acme Corp",
@@ -60,7 +60,7 @@ describe("Client Controller", () => {
     });
 
     it("should reject client creation without authentication", async () => {
-      const response = await request(app).post("/clients").send({
+      const response = await request(app).post("/api/v1/clients").send({
         name: "Acme Corp",
         email: "contact@acmecorp.com",
       });
@@ -71,7 +71,7 @@ describe("Client Controller", () => {
 
     it("should reject client creation with invalid token", async () => {
       const response = await request(app)
-        .post("/clients")
+        .post("/api/v1/clients")
         .set("Authorization", "Bearer invalid-token")
         .send({
           name: "Acme Corp",
@@ -84,7 +84,7 @@ describe("Client Controller", () => {
 
     it("should handle validation errors properly", async () => {
       const response = await request(app)
-        .post("/clients")
+        .post("/api/v1/clients")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
           name: "",

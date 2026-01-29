@@ -4,9 +4,9 @@ import { User, Role } from "../models/User";
 import { createTestUser} from "./helpers/testHelpers";
 
 describe("Authentication Controller", () => {
-  describe("POST /auth/signup", () => {
+  describe("POST /api/v1/auth/signup", () => {
     it("should successfully register a new user", async () => {
-      const response = await request(app).post("/auth/signup").send({
+      const response = await request(app).post("/api/v1/auth/signup").send({
         name: "John Doe",
         email: "john@example.com",
         password: "password123",
@@ -24,7 +24,7 @@ describe("Authentication Controller", () => {
     });
 
     it("should reject signup with missing fields", async () => {
-      const response = await request(app).post("/auth/signup").send({
+      const response = await request(app).post("/api/v1/auth/signup").send({
         email: "john@example.com",
         password: "password123",
       });
@@ -34,7 +34,7 @@ describe("Authentication Controller", () => {
     });
 
     it("should reject signup with mismatched passwords", async () => {
-      const response = await request(app).post("/auth/signup").send({
+      const response = await request(app).post("/api/v1/auth/signup").send({
         name: "John Doe",
         email: "john@example.com",
         password: "password123",
@@ -46,7 +46,7 @@ describe("Authentication Controller", () => {
     });
 
     it("should reject signup with short password", async () => {
-      const response = await request(app).post("/auth/signup").send({
+      const response = await request(app).post("/api/v1/auth/signup").send({
         name: "John Doe",
         email: "john@example.com",
         password: "pass",
@@ -63,7 +63,7 @@ describe("Authentication Controller", () => {
 
       await createTestUser({ email: "john@example.com" });
 
-      const response = await request(app).post("/auth/signup").send({
+      const response = await request(app).post("/api/v1/auth/signup").send({
         name: "John Doe",
         email: "john@example.com",
         password: "password123",
@@ -75,7 +75,7 @@ describe("Authentication Controller", () => {
     });
   });
 
-  describe("POST /auth/login", () => {
+  describe("POST /api/v1/auth/login", () => {
     let testUserEmail: string;
 
     beforeEach(async () => {
@@ -88,7 +88,7 @@ describe("Authentication Controller", () => {
     });
 
     it("should successfully login with valid credentials", async () => {
-      const response = await request(app).post("/auth/login").send({
+      const response = await request(app).post("/api/v1/auth/login").send({
         email: testUserEmail,
         password: "password123",
       });
@@ -101,7 +101,7 @@ describe("Authentication Controller", () => {
     });
 
     it("should reject login with non-existent email", async () => {
-      const response = await request(app).post("/auth/login").send({
+      const response = await request(app).post("/api/v1/auth/login").send({
         email: "nonexistent@example.com",
         password: "password123",
       });
@@ -111,7 +111,7 @@ describe("Authentication Controller", () => {
     });
 
     it("should reject login with incorrect password", async () => {
-      const response = await request(app).post("/auth/login").send({
+      const response = await request(app).post("/api/v1/auth/login").send({
         email: testUserEmail,
         password: "wrongpassword",
       });
@@ -127,7 +127,7 @@ describe("Authentication Controller", () => {
         password_hash: undefined,
       });
 
-      const response = await request(app).post("/auth/login").send({
+      const response = await request(app).post("/api/v1/auth/login").send({
         email: "oauth@example.com",
         password: "anypassword",
       });
@@ -137,14 +137,14 @@ describe("Authentication Controller", () => {
     });
   });
 
-  describe("GET /auth/users", () => {
+  describe("GET /api/v1/auth/users", () => {
     it("should return all users without password hashes", async () => {
 
       await createTestUser({ email: "user1@example.com" });
       await createTestUser({ email: "user2@example.com" });
       await createTestUser({ email: "user3@example.com" });
 
-      const response = await request(app).get("/auth/users");
+      const response = await request(app).get("/api/v1/auth/users");
 
       expect(response.status).toBe(200);
       expect(response.body.users).toBeDefined();
@@ -156,7 +156,7 @@ describe("Authentication Controller", () => {
     });
 
     it("should return empty array when no users exist", async () => {
-      const response = await request(app).get("/auth/users");
+      const response = await request(app).get("/api/v1/auth/users");
 
       expect(response.status).toBe(200);
       expect(response.body.users).toBeDefined();

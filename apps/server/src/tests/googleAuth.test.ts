@@ -110,7 +110,7 @@ describe("Google Authentication", () => {
       });
 
       // Attempt normal login should fail
-      const response = await request(app).post("/auth/login").send({
+      const response = await request(app).post("/api/v1/auth/login").send({
         email: "oauthonly@example.com",
         password: "anypassword",
       });

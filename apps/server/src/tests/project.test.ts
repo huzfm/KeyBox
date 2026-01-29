@@ -22,10 +22,10 @@ describe("Project Controller", () => {
     authToken = generateTestToken(userId);
   });
 
-  describe("POST /projects", () => {
+  describe("POST /api/v1/projects", () => {
     it("should successfully create project with license in a transaction", async () => {
       const response = await request(app)
-        .post("/projects/createProject")
+        .post("/api/v1/projects/createProject")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
           clientId,
@@ -63,7 +63,7 @@ describe("Project Controller", () => {
 
     it("should reject project creation without clientId", async () => {
       const response = await request(app)
-        .post("/projects/createProject")
+        .post("/api/v1/projects/createProject")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
           projectName: "Test Project",
@@ -77,7 +77,7 @@ describe("Project Controller", () => {
 
     it("should reject project creation without projectName", async () => {
       const response = await request(app)
-        .post("/projects/createProject")
+        .post("/api/v1/projects/createProject")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
           clientId,
@@ -91,7 +91,7 @@ describe("Project Controller", () => {
 
     it("should reject project creation with invalid duration", async () => {
       const response = await request(app)
-        .post("/projects/createProject")
+        .post("/api/v1/projects/createProject")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
           clientId,
@@ -106,7 +106,7 @@ describe("Project Controller", () => {
 
     it("should reject project creation with duration less than 1", async () => {
       const response = await request(app)
-        .post("/projects/createProject")
+        .post("/api/v1/projects/createProject")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
           clientId,
@@ -121,7 +121,7 @@ describe("Project Controller", () => {
 
     it("should reject project creation without services", async () => {
       const response = await request(app)
-        .post("/projects/createProject")
+        .post("/api/v1/projects/createProject")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
           clientId,
@@ -136,7 +136,7 @@ describe("Project Controller", () => {
 
     it("should reject project creation with non-array services", async () => {
       const response = await request(app)
-        .post("/projects/createProject")
+        .post("/api/v1/projects/createProject")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
           clientId,
@@ -153,7 +153,7 @@ describe("Project Controller", () => {
       const fakeClientId = "507f1f77bcf86cd799439011";
 
       const response = await request(app)
-        .post("/projects/createProject")
+        .post("/api/v1/projects/createProject")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
           clientId: fakeClientId,
@@ -167,7 +167,7 @@ describe("Project Controller", () => {
     });
 
     it("should reject project creation without authentication", async () => {
-      const response = await request(app).post("/projects/createProject").send({
+      const response = await request(app).post("/api/v1/projects/createProject").send({
         clientId,
         projectName: "Test Project",
         duration: 6,
@@ -183,7 +183,7 @@ describe("Project Controller", () => {
       const initialLicenseCount = await License.countDocuments();
 
       await request(app)
-        .post("/projects/createProject")
+        .post("/api/v1/projects/createProject")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
           clientId: "invalid-id-format",

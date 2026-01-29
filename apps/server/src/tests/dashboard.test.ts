@@ -18,7 +18,7 @@ describe("Dashboard Controller", () => {
     authToken = generateTestToken(userId);
   });
 
-  describe("GET /dashboard", () => {
+  describe("GET /api/v1/dashboard", () => {
     it("should return full dashboard data for user", async () => {
 
       const client1 = await createTestClient(userId, {
@@ -52,7 +52,7 @@ describe("Dashboard Controller", () => {
       );
 
       const response = await request(app)
-        .get("/dashboard")
+        .get("/api/v1/dashboard")
         .set("Authorization", `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
@@ -78,7 +78,7 @@ describe("Dashboard Controller", () => {
 
     it("should return empty data when user has no clients", async () => {
       const response = await request(app)
-        .get("/dashboard")
+        .get("/api/v1/dashboard")
         .set("Authorization", `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
@@ -88,7 +88,7 @@ describe("Dashboard Controller", () => {
     });
 
     it("should reject dashboard request without authentication", async () => {
-      const response = await request(app).get("/dashboard");
+      const response = await request(app).get("/api/v1/dashboard");
 
       expect(response.status).toBe(401);
     });
@@ -97,7 +97,7 @@ describe("Dashboard Controller", () => {
       await createTestClient(userId, { email: "client@example.com" });
 
       const response = await request(app)
-        .get("/dashboard")
+        .get("/api/v1/dashboard")
         .set("Authorization", `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
@@ -111,7 +111,7 @@ describe("Dashboard Controller", () => {
       await createTestProject(client._id.toString());
 
       const response = await request(app)
-        .get("/dashboard")
+        .get("/api/v1/dashboard")
         .set("Authorization", `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
@@ -129,7 +129,7 @@ describe("Dashboard Controller", () => {
       });
 
       const response = await request(app)
-        .get("/dashboard")
+        .get("/api/v1/dashboard")
         .set("Authorization", `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
