@@ -7,7 +7,7 @@ describe("Google Authentication", () => {
   describe("GET /auth/google", () => {
     it("should redirect to Google OAuth page", async () => {
       const response = await request(app).get("/auth/google");
-      
+
       // Should redirect (302) to Google's OAuth page
       expect(response.status).toBe(302);
       expect(response.headers.location).toContain("accounts.google.com");
@@ -56,12 +56,14 @@ describe("Google Authentication", () => {
       // Verify the update
       const updatedUser = await User.findById(existingUser._id);
       expect(updatedUser?.googleId).toBe("google-link-456");
-      expect(updatedUser?.profilePicture).toBe("https://example.com/linked.jpg");
+      expect(updatedUser?.profilePicture).toBe(
+        "https://example.com/linked.jpg",
+      );
     });
 
     it("should find user by Google ID on subsequent logins", async () => {
       const googleId = "returning-google-id";
-      
+
       await User.create({
         name: "Returning Google User",
         email: "returning@example.com",
@@ -79,7 +81,7 @@ describe("Google Authentication", () => {
 
     it("should not create duplicate user if Google ID already exists", async () => {
       const googleId = "duplicate-test-id";
-      
+
       await User.create({
         name: "First User",
         email: "first@example.com",
@@ -94,7 +96,7 @@ describe("Google Authentication", () => {
           email: "second@example.com",
           googleId: googleId,
           role: Role.DEVELOPER,
-        })
+        }),
       ).rejects.toThrow();
     });
   });
@@ -110,7 +112,7 @@ describe("Google Authentication", () => {
       });
 
       // Attempt normal login should fail
-      const response = await request(app).post("/api/v1/auth/login").send({
+      const response = await request(app).post("/auth/login").send({
         email: "oauthonly@example.com",
         password: "anypassword",
       });
@@ -153,14 +155,14 @@ describe("Google Authentication", () => {
   describe("Google OAuth Callback", () => {
     it("should return redirect status when callback is accessed", async () => {
       const response = await request(app).get("/auth/google/callback");
-      
+
       // Without a valid code, should redirect (to Google OAuth or login)
       expect(response.status).toBe(302);
     });
 
     it("should have callback route registered at /auth/google/callback", async () => {
       const response = await request(app).get("/auth/google/callback");
-      
+
       // Route should exist (not 404) and return redirect
       expect(response.status).not.toBe(404);
       expect(response.status).toBe(302);

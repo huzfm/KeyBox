@@ -44,12 +44,12 @@ if (process.env.NODE_ENV !== "test") {
   app.use(ensureDB);
 }
 
-app.use("/api/v1/auth", auth);
-app.use("/api/v1/license", license);
+app.use("/auth", auth);
+app.use("/license", license);
 app.use("/validate", validateKey);
-app.use("/api/v1/clients", clientRoutes);
-app.use("/api/v1/projects", projectRoutes);
-app.use("/api/v1/dashboard", dashboardRoutes);
+app.use("/clients", clientRoutes);
+app.use("/projects", projectRoutes);
+app.use("/dashboard", dashboardRoutes);
 
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   console.error("Global Error:", err);

@@ -26,10 +26,10 @@ describe("License Controller", () => {
     authToken = generateTestToken(userId);
   });
 
-  describe("POST /api/v1/license", () => {
+  describe("POST /license", () => {
     it("should successfully create a license", async () => {
       const response = await request(app)
-        .post("/api/v1/license/create")
+        .post("/license/create")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
           duration: 6,
@@ -48,7 +48,7 @@ describe("License Controller", () => {
 
     it("should reject license creation with duration less than 1", async () => {
       const response = await request(app)
-        .post("/api/v1/license/create")
+        .post("/license/create")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
           duration: 0,
@@ -62,7 +62,7 @@ describe("License Controller", () => {
 
     it("should reject license creation without client or project", async () => {
       const response = await request(app)
-        .post("/api/v1/license/create")
+        .post("/license/create")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
           duration: 6,
@@ -73,7 +73,7 @@ describe("License Controller", () => {
     });
 
     it("should reject license creation without authentication", async () => {
-      const response = await request(app).post("/api/v1/license/create").send({
+      const response = await request(app).post("/license/create").send({
         duration: 6,
         clientId,
         projectId,
@@ -83,14 +83,14 @@ describe("License Controller", () => {
     });
   });
 
-  describe("PATCH /api/v1/license/revoke/:key", () => {
+  describe("PATCH /license/revoke/:key", () => {
     it("should toggle license from ACTIVE to REVOKED", async () => {
       const license = await createTestLicense(userId, clientId, projectId, {
         status: Status.ACTIVE,
       });
 
       const response = await request(app).patch(
-        `/api/v1/license/revoke/${license.key}`
+        `/license/revoke/${license.key}`,
       );
 
       expect(response.status).toBe(200);
@@ -105,7 +105,7 @@ describe("License Controller", () => {
       });
 
       const response = await request(app).patch(
-        `/api/v1/license/revoke/${license.key}`
+        `/license/revoke/${license.key}`,
       );
 
       expect(response.status).toBe(200);
@@ -115,7 +115,7 @@ describe("License Controller", () => {
 
     it("should return 404 for non-existent license key", async () => {
       const response = await request(app).patch(
-        "/api/v1/license/revoke/NONEXISTENT-KEY"
+        "/license/revoke/NONEXISTENT-KEY",
       );
 
       expect(response.status).toBe(404);
@@ -123,7 +123,7 @@ describe("License Controller", () => {
     });
 
     it("should return 400 when key is missing", async () => {
-      const response = await request(app).patch("/api/v1/license/revoke/");
+      const response = await request(app).patch("/license/revoke/");
 
       expect(response.status).toBe(404);
     });
@@ -133,7 +133,7 @@ describe("License Controller", () => {
     it("should return users with their licenses", async () => {
       await createTestLicense(userId, clientId, projectId);
 
-      const response = await request(app).get("/api/v1/license/user-licenses");
+      const response = await request(app).get("/license/user-licenses");
 
       expect(response.status).toBe(200);
       expect(response.body.users).toBeDefined();
@@ -146,13 +146,11 @@ describe("License Controller", () => {
       await createTestLicense(userId, clientId, projectId);
 
       const response = await request(app)
-        .get(`/api/v1/license/user/${userId}`)
+        .get(`/license/user/${userId}`)
         .set("Authorization", `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
-      expect(response.body.message).toBe(
-        "User details successfully retrieved"
-      );
+      expect(response.body.message).toBe("User details successfully retrieved");
       expect(response.body.user).toBeDefined();
       expect(response.body.licenseCount).toBeGreaterThan(0);
     });
@@ -161,7 +159,7 @@ describe("License Controller", () => {
       const fakeId = "507f1f77bcf86cd799439011";
 
       const response = await request(app)
-        .get(`/api/v1/license/user/${fakeId}`)
+        .get(`/license/user/${fakeId}`)
         .set("Authorization", `Bearer ${authToken}`);
 
       expect(response.status).toBe(404);
@@ -169,7 +167,7 @@ describe("License Controller", () => {
     });
 
     it("should return 400 when user ID is missing", async () => {
-      const response = await request(app).get("/api/v1/license/user/");
+      const response = await request(app).get("/license/user/");
 
       expect(response.status).toBe(404);
     });

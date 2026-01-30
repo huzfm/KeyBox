@@ -14,7 +14,7 @@ export const signupUser = async (data: {
 };
 
 export const loginUser = async (data: { email: string; password: string }) => {
-  const res = await axiosInstance.post("/api/v1/auth/login", data);
+  const res = await axiosInstance.post("/auth/login", data);
   return res.data;
 };
 
@@ -23,6 +23,6 @@ export const createLicense = async (data: {
   customer: string;
   duration: number;
 }) => {
-  const res = await axiosInstance.post("/api/v1/license/create", data);
+  const res = await axiosInstance.post("/license/create", data);
   return res.data;
 };

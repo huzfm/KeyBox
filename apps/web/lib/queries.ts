@@ -5,7 +5,7 @@ export const useDashboard = () =>
   useQuery({
     queryKey: ["dashboard"],
     queryFn: async () => {
-      const { data } = await api.get("/api/v1/dashboard");
+      const { data } = await api.get("/dashboard");
       return data.data;
     },
   });
@@ -15,7 +15,7 @@ export const useCreateClient = () => {
 
   return useMutation({
     mutationFn: async ({ name, email }: { name: string; email: string }) => {
-      const { data } = await api.post("/api/v1/clients", { name, email });
+      const { data } = await api.post("/clients", { name, email });
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dashboard"] }),
@@ -32,7 +32,7 @@ export const useCreateProject = () => {
       duration: number;
       services: string[];
     }) => {
-      await api.post("/api/v1/projects/createProject", payload);
+      await api.post("/projects/createProject", payload);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dashboard"] }),
   });
@@ -43,7 +43,7 @@ export const useToggleLicense = () => {
 
   return useMutation({
     mutationFn: async (key: string) => {
-      await api.patch(`/api/v1/license/revoke/${key}`);
+      await api.patch(`/license/revoke/${key}`);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dashboard"] }),
   });
