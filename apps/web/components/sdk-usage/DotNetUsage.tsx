@@ -17,8 +17,7 @@ app.MapGet("/", () => "Hello World!");
 await app.RunProtectedAsync(
     productName: "MyNodeApp",
     key: Environment.GetEnvironmentVariable("KEYBOX_LICENSE_KEY") ?? throw new InvalidOperationException("KEYBOX_LICENSE_KEY is missing"),
-    intervalSeconds: 5 // Check every 5 seconds
-);`;
+    intervalSeconds: 86400, // once in 24hours);`;
 
   return (
     <>
