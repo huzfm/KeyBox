@@ -1,159 +1,167 @@
-using System;
-using System.Net.Http;
-using System.Text;
-using System.Text.Json;
-using System.Threading;
 
-namespace KeyboxSdk;
 
-public static class KeyboxClient {
-    private static readonly HttpClient _http = new ();
+let intervalId = null;
+let lastState = "unknown";
 
-    private static Timer?_intervalTimer;
-    private static string _lastState = "unknown";
-    private static bool _running = false;
-
-    // ---------------- LOG ----------------
-    private static void Log(string level, string message, object? meta = null) {
-        var time = DateTime.UtcNow.ToString("O");
-        Console.WriteLine(
-            $"[{time}] [KEYBOX] [{level}] {message} " +
-        (meta != null ? JsonSerializer.Serialize(meta) : "")
-        );
-    }
-
-    // ---------------- MODEL ----------------
-    public class LicenseResponse
-    {
-        public bool Success { get; set; }
-        public bool Valid { get; set; }
-        public string ? Status { get; set; }
-        public string ? ExpiresAt { get; set; }
-        public string ? Message { get; set; }
+function log(level, message, meta = {}) {
+    const time = new Date().toISOString();
+    console.log(
+        `[${time}] [KEYBOX] [${level}] ${message}`,
+        Object.keys(meta).length ? meta : ""
+    );
 }
 
-    // ---------------- ACTIVATE ----------------
-    public static async Task < LicenseResponse > ActivateLicenseAsync(
-    string productName,
-    string key,
-    string apiUrl = "https://api-keybox.vercel.app",
-    string endpoint = "/validate/activate")
-{
-    if (string.IsNullOrWhiteSpace(productName) || string.IsNullOrWhiteSpace(key))
-        throw new ArgumentException("productName and key are required");
+export async function activateLicense({
+    productName,
+    key,
+    apiUrl = "https://api-keybox.vercel.app",
+    endpoint = "/validate/activate",
+}) {
+    if (!productName || !key) {
+        throw new Error("productName and key are required");
+    }
 
-    Log("INFO", "Activating license", new { productName });
+    log("INFO", "Activating license", { productName });
 
-    var payload = JsonSerializer.Serialize(new { key, productName });
-    var content = new StringContent(payload, Encoding.UTF8, "application/json");
+    const response = await fetch(`${apiUrl}${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, productName }),
+    });
 
-    var response = await _http.PostAsync(apiUrl + endpoint, content);
-    var json = await response.Content.ReadAsStringAsync();
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+        throw new Error("License server did not return JSON");
+    }
 
-    var data = JsonSerializer.Deserialize < LicenseResponse > (json,
-        new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+    const data = await response.json();
 
-    if (!response.IsSuccessStatusCode || !data.Success)
-        throw new Exception(data.Message ?? "License activation failed");
+    if (!response.ok || !data.success) {
+        throw new Error(data.message || "License activation failed");
+    }
 
-    Log("INFO", "License activated", new
-        {
-            data.Status,
-            data.ExpiresAt
-        });
+    log("INFO", "License activated", {
+        status: data.status,
+        expiresAt: data.expiresAt,
+    });
 
     return data;
 }
 
-    // ---------------- DAEMON ----------------
-    public static async Task StartLicenseDaemonAsync(
-    string productName,
-    string key,
-    string apiUrl = "https://api-keybox.vercel.app",
-    string endpoint = "/validate",
-    int intervalSeconds = 86400,
-    Action < LicenseResponse >? onStart = null,
-    Action < LicenseResponse >? onStop = null)
-{
-    if (string.IsNullOrWhiteSpace(productName) || string.IsNullOrWhiteSpace(key))
-        throw new ArgumentException("productName and key are required");
+export async function startLicenseDaemon({
+    productName,
+    key,
+    apiUrl = "https://api-keybox.vercel.app",
+    endpoint = "/validate",
+    intervalSeconds = 86400,
+    onStart,
+    onStop,
+}) {
+    if (!productName || !key) {
+        throw new Error("productName and key are required");
+    }
 
-        async Task ValidateOnce()
-    {
-        if (_running) return;
-        _running = true;
-
-        Log("INFO", "Validating license", new { productName });
+    async function validateOnce() {
+        log("INFO", "Validating license", { productName });
 
         try {
-            var payload = JsonSerializer.Serialize(new { key, productName });
-            var content = new StringContent(payload, Encoding.UTF8, "application/json");
+            const response = await fetch(`${apiUrl}${endpoint}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ key, productName }),
+            });
 
-            var response = await _http.PostAsync(apiUrl + endpoint, content);
-            var json = await response.Content.ReadAsStringAsync();
-
-            var data = JsonSerializer.Deserialize < LicenseResponse > (json,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
-
-            var currentState = data.Valid ? "valid" : "invalid";
-
-            if (currentState != _lastState) {
-                Log("INFO", "License state changed", new
-                    {
-                        from = _lastState,
-                        to = currentState,
-                        data.Status
-                    });
-
-                _lastState = currentState;
-
-                if (currentState == "valid") onStart?.Invoke(data);
-                else onStop?.Invoke(data);
+            const contentType = response.headers.get("content-type") || "";
+            if (!contentType.includes("application/json")) {
+                throw new Error("License server did not return JSON");
             }
-        }
-        catch (Exception ex)
-        {
-            Log("ERROR", "License validation error", new { error = ex.Message });
 
-            if (_lastState != "invalid") {
-                _lastState = "invalid";
-                onStop?.Invoke(new LicenseResponse
-                    {
-                        Valid = false,
-                        Status = "error",
-                        Message = ex.Message
+            const data = await response.json();
+            const currentState = data.valid ? "valid" : "invalid";
+
+            if (currentState !== lastState) {
+                log("INFO", "License state changed", {
+                    from: lastState,
+                    to: currentState,
+                    status: data.status,
+                });
+
+                lastState = currentState;
+
+                if (currentState === "valid") {
+                    onStart && onStart(data);
+                } else {
+                    onStop && onStop(data);
+                }
+            }
+        } catch (err) {
+            log("ERROR", "License validation error", { error: err.message });
+
+            if (lastState !== "invalid") {
+                lastState = "invalid";
+                onStop &&
+                    onStop({
+                        valid: false,
+                        status: "error",
+                        message: err.message,
                     });
             }
-        }
-            finally {
-            _running = false;
         }
     }
 
-    // first run
-    await ValidateOnce();
+    await validateOnce();
 
-    // setInterval equivalent
-    _intervalTimer = new Timer(async _ => {
-        try { await ValidateOnce(); }
-        catch { }
-    },
-        null,
-        TimeSpan.FromSeconds(intervalSeconds),
-        TimeSpan.FromSeconds(intervalSeconds));
+    intervalId = setInterval(validateOnce, intervalSeconds * 1000);
 
-    Log("INFO", "License daemon started", new { intervalSeconds });
+    log("INFO", "License daemon started", { intervalSeconds });
 }
 
-    // ---------------- STOP ----------------
-    public static void StopLicenseDaemon()
-{
-    if (_intervalTimer != null) {
-        _intervalTimer.Change(Timeout.Infinite, Timeout.Infinite);
-        _intervalTimer.Dispose();
-        _intervalTimer = null;
-        _lastState = "unknown";
-        Log("INFO", "License daemon stopped");
+export function stopLicenseDaemon() {
+    if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+        lastState = "unknown";
+        log("INFO", "License daemon stopped");
     }
 }
+
+export async function protectNodeApp({
+    app,
+    port,
+    productName,
+    key,
+    apiUrl,
+    intervalSeconds = 86400,
+}) {
+    if (!app) throw new Error("Express app instance is required");
+    if (!port) throw new Error("port is required");
+
+    let server = null;
+
+    await activateLicense({ productName, key, apiUrl });
+
+    await startLicenseDaemon({
+        productName,
+        key,
+        apiUrl,
+        intervalSeconds,
+
+        onStart: () => {
+            if (!server) {
+                server = app.listen(port, () => {
+                    console.log(`Licensed app running at http://localhost:${port}`);
+                });
+            }
+        },
+
+        onStop: (data) => {
+            console.error("License invalid → shutting down app", data);
+
+            if (server) {
+                server.close(() => process.exit(1));
+            } else {
+                process.exit(1);
+            }
+        },
+    });
 }
