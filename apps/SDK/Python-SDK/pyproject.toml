@@ -1,9 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "keybox-sdk"
 version = "0.1.0"
-description = "KeyBox licensing SDK for Python & FastAPI"
-dependencies = ["requests"]
+description = "Keybox licensing SDK for Python"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [
+  { name="Keybox", email="support@keybox.dev" }
+]
 
-[build-system]
-requires = ["setuptools>=61"]
-build-backend = "setuptools.build_meta"
+dependencies = [
+  "requests>=2.31.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/your-org/keybox-sdk"
