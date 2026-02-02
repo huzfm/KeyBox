@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute("KeyBox license protection SDK for .NET apps")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+282f483fff25392f5b37c201fef865afe8585019")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+17f1224d742ab2f7721f09bc41a5df5dd92519f6")]
 [assembly: System.Reflection.AssemblyProductAttribute("KeyboxSDk")]
 [assembly: System.Reflection.AssemblyTitleAttribute("KeyboxSDk")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
