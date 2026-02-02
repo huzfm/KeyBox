@@ -13,11 +13,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\huzfm\\Desktop\\dotnet\\keybox\\apps\\SDK\\Dotnet-SDK\\KeyboxSDk.csproj",
+      "projectUniqueName": "C:\\Users\\huzfm\\Desktop\\projects\\keybox\\apps\\SDK\\Dotnet-SDK\\KeyboxSDk.csproj",
       "projectName": "KeyboxSdk",
-      "projectPath": "C:\\Users\\huzfm\\Desktop\\dotnet\\keybox\\apps\\SDK\\Dotnet-SDK\\KeyboxSDk.csproj",
+      "projectPath": "C:\\Users\\huzfm\\Desktop\\projects\\keybox\\apps\\SDK\\Dotnet-SDK\\KeyboxSDk.csproj",
       "packagesPath": "C:\\Users\\huzfm\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\huzfm\\Desktop\\dotnet\\keybox\\apps\\SDK\\Dotnet-SDK\\obj\\",
+      "outputPath": "C:\\Users\\huzfm\\Desktop\\projects\\keybox\\apps\\SDK\\Dotnet-SDK\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\huzfm\\AppData\\Roaming\\NuGet\\NuGet.Config"
