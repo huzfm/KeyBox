@@ -1,6 +1,6 @@
 "use client";
 
-import { Key, Shield, Zap } from "lucide-react";
+import { Key, Shield, Zap, Code2 } from "lucide-react";
 
 const features = [
   {
@@ -30,6 +30,17 @@ const features = [
     details:
       "Set automatic expiration policies and renewal reminders effortlessly.",
     benefits: ["Auto Expiration", "Renewal Alerts", "Bulk Management"],
+    color: "from-zinc-900/80 to-black/70",
+    accentColor: "bg-zinc-800/30",
+    borderColor: "border-zinc-800/40",
+  },
+  {
+    icon: Code2,
+    title: "Multi-Language SDK",
+    desc: "Official SDKs for your stack",
+    details:
+      "Integrate with ease using our pre-built SDKs for major languages.",
+    benefits: ["Node.js & Next.js", "Python & FastAPI", ".NET Core Support"],
     color: "from-zinc-900/80 to-black/70",
     accentColor: "bg-zinc-800/30",
     borderColor: "border-zinc-800/40",
