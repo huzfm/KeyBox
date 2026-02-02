@@ -1,22 +1,31 @@
-# .github/workflows/ci.yml
-name: CI
+name: Turbo CI
 
 on:
   push:
-    branches: ["main"]
+    branches: [main]
   pull_request:
-    branches: ["main"]
 
 jobs:
-  build-test:
+  test-build-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
-      - run: npm install
-      - run: npm run build
+      - name: Install
+        run: npm ci
+
+      - name: Turbo test
+        run: npx turbo run test --filter=@app/server
+
+      - name: Turbo build
+        run: npx turbo run build --filter=@app/server
+
+      - name: Deploy
+        if: success()
+        run: |
+          echo "Deploy server"
