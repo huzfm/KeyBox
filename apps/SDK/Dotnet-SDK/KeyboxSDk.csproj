@@ -9,8 +9,16 @@
 		<Version>1.0.0</Version>
 		<Authors>KeyBox</Authors>
 		<Company>KeyBox</Company>
-		<Description>KeyBox license protection SDK for .NET apps</Description>
+		<Description>KeyBox license protection SDK for .NET apps. Enterprise-grade license validation made simple.</Description>
+		<PackageProjectUrl>https://keybox.dev</PackageProjectUrl>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageTags>licensing;license-key;protection;security;keybox</PackageTags>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
