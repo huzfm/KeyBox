@@ -35,7 +35,3 @@ await app.RunProtectedAsync(
 - **Fluent Integration**: Seamlessly wraps `app.Run()` with `RunProtectedAsync`.
 - **Background Validation**: Automatic background checks at configurable intervals.
 - **ASP.NET Core Built-in**: Designed to work naturally with the .NET 8.0+ web stack.
-
-## Documentation
-
-For full documentation and advanced configuration, visit [keybox.dev/docs](https://keybox.dev/docs).

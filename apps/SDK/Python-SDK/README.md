@@ -33,7 +33,3 @@ def read_root():
 - **Automated Validation**: Set background license checks with configurable intervals.
 - **Easy Integration**: Built-in support for FastAPI.
 - **Secure**: Cryptographically secure validation.
-
-## Documentation
-
-Visit [keybox.dev/docs](https://keybox.dev/docs) for full documentation.
