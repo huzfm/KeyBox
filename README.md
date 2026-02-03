@@ -9,6 +9,7 @@ This Turborepo contains:
 - **SDKs**
   - Node.js SDK
   - Python FastAPI SDK
+  - Dotnet SDK
 ---
 
 ##  Repository Structure
@@ -21,6 +22,7 @@ KeyBox/
 │   └── sdk/
 │       ├── node-sdk/           # Node.js SDK        
 │       └── python-sdk/         # Python FastAPI SDK
+│       └── dotnet-sdk/         # Dotnet SDK
 ├── packages/
 │       ├── eslint-config/
 │       ├── typescript-config/
