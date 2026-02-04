@@ -1,58 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import CodeBlock from "./ui/CodeBlock";
+import NodeJsUsage from "./sdk-usage/NodeJsUsage";
+import PythonUsage from "./sdk-usage/PythonUsage";
+import DotNetUsage from "./sdk-usage/DotNetUsage";
 
-type Language = "nodejs" | "python";
-type PackageManager = "npm" | "pnpm" | "yarn" | "bun";
+type Language = "nodejs" | "python" | "dotnet";
 
 export default function ApiUsagePage() {
   const [selectedLanguage, setSelectedLanguage] = useState<Language>("nodejs");
-  const [packageManager, setPackageManager] = useState<PackageManager>("npm");
-
-  const installCommands: Record<PackageManager, string> = {
-    npm: "npm install keybox-sdk",
-    pnpm: "pnpm add keybox-sdk",
-    yarn: "yarn add keybox-sdk",
-    bun: "bun add keybox-sdk",
-  };
-
-  const nodejsCode = `import express from "express";
-import { protectNodeApp } from "keybox-sdk";
-const app = express();
-
-app.get("/", (_req, res) => {
-  res.send("Your app is licensed and running.");
-});
-
-protectNodeApp({
-  app,
-  port: process.env.PORT,
-  productName: "MyNodeApp",
-  key: process.env.KEYBOX_LICENSE_KEY
-  intervalSeconds: 86400, // once in 24hours
-});`;
-
-  const pythonCode = `# Python SDK coming soon!
-# Stay tuned for updates
-
-from keybox import protect_app
-
-# Protect your Python application
-@protect_app(
-    product_name="your-product-name",
-    license_key="your-license-key",
-    api_url="https://api-keybox.vercel.app"
-)
-def main():
-    print("Your licensed application is running!")
-
-if __name__ == "__main__":
-    main()`;
 
   return (
     <main className="relative overflow-hidden min-h-screen">
-      {}
+      {/* Grid Pattern Background */}
       <div
         className="
           pointer-events-none
@@ -63,130 +23,68 @@ if __name__ == "__main__":
         "
       />
 
-      {}
+      {/* Content Container */}
       <section className="relative z-10 py-16 px-4">
         <div className="max-w-4xl mx-auto">
-          {}
+          {/* Header */}
           <div className="text-center mb-12">
             <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4 font-mono">
-              API Usage
+              SDK Usage
             </h1>
             <p className="text-lg text-muted-foreground">
               Integrate KeyBox into your application with our SDK
             </p>
           </div>
 
-          {}
-         <div className="mx-auto mb-8 w-fit rounded-xl border border-zinc-800 bg-zinc-950 p-1 shadow-sm">
-  <div className="flex gap-1">
-    <button
-      onClick={() => setSelectedLanguage("nodejs")}
-      className={`px-5 py-2 text-sm font-medium rounded-lg transition-colors
-        ${
-          selectedLanguage === "nodejs"
-            ? "bg-zinc-900 text-white shadow-sm"
-            : "text-zinc-400 hover:text-white hover:bg-zinc-900/60"
-        }
-      `}
-    >
-      Node.js
-    </button>
+          {/* Language Selector */}
+          <div className="mx-auto mb-8 w-fit rounded-xl border border-zinc-800 bg-zinc-950 p-1 shadow-sm">
+            <div className="flex gap-1">
+              <button
+                onClick={() => setSelectedLanguage("nodejs")}
+                className={`px-5 py-2 text-sm font-medium rounded-lg transition-colors
+                  ${
+                    selectedLanguage === "nodejs"
+                      ? "bg-zinc-900 text-white shadow-sm"
+                      : "text-zinc-400 hover:text-white hover:bg-zinc-900/60"
+                  }
+                `}
+              >
+                Node.js
+              </button>
 
-    <button
-      onClick={() => setSelectedLanguage("python")}
-      className={`px-5 py-2 text-sm font-medium rounded-lg transition-colors
-        ${
-          selectedLanguage === "python"
-            ? "bg-zinc-900 text-white shadow-sm"
-            : "text-zinc-400 hover:text-white hover:bg-zinc-900/60"
-        }
-      `}
-    >
-      Python
-    </button>
-  </div>
-</div>
+              <button
+                onClick={() => setSelectedLanguage("python")}
+                className={`px-5 py-2 text-sm font-medium rounded-lg transition-colors
+                  ${
+                    selectedLanguage === "python"
+                      ? "bg-zinc-900 text-white shadow-sm"
+                      : "text-zinc-400 hover:text-white hover:bg-zinc-900/60"
+                  }
+                `}
+              >
+                Python
+              </button>
 
-          {}
+              <button
+                onClick={() => setSelectedLanguage("dotnet")}
+                className={`px-5 py-2 text-sm font-medium rounded-lg transition-colors
+                  ${
+                    selectedLanguage === "dotnet"
+                      ? "bg-zinc-900 text-white shadow-sm"
+                      : "text-zinc-400 hover:text-white hover:bg-zinc-900/60"
+                  }
+                `}
+              >
+                .NET
+              </button>
+            </div>
+          </div>
+
+          {/* Content Area */}
           <div className="space-y-8">
-            {selectedLanguage === "nodejs" && (
-              <>
-                {}
-                <div>
-                  <h2 className="text-2xl font-bold text-white mb-4">
-                    Installation
-                  </h2>
-
-                  {}
-                  <div className="flex gap-2 mb-4 flex-wrap">
-                    {(["npm", "pnpm", "yarn", "bun"] as PackageManager[]).map(
-                      (pm) => (
-                        <button
-                          key={pm}
-                          onClick={() => setPackageManager(pm)}
-                          className={`
-                            px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                            ${
-                              packageManager === pm
-                                ? "bg-zinc-700 text-white"
-                                : "bg-zinc-900/60 text-zinc-400 hover:bg-zinc-800/60 border border-zinc-800/40"
-                            }
-                          `}
-                        >
-                          {pm}
-                        </button>
-                      )
-                    )}
-                  </div>
-
-                  <CodeBlock
-                    code={installCommands[packageManager]}
-                    language="bash"
-                    title="Install KeyBox SDK"
-                  />
-                </div>
-
-                {}
-                <div>
-                  <h2 className="text-2xl font-bold text-white mb-4">Usage</h2>
-                  <CodeBlock
-                    code={nodejsCode}
-                    language="javascript"
-                    title="app.js or index.js"
-                  />
-                </div>
-
-              </>
-            )}
-
-            {selectedLanguage === "python" && (
-              <>
-                {}
-                <div>
-                  <h2 className="text-2xl font-bold text-white mb-4">
-                    Installation
-                  </h2>
-                  <CodeBlock
-                    code="pip install keybox-sdk"
-                    language="bash"
-                    title="Install KeyBox SDK"
-                  />
-                </div>
-
-                {}
-                <div>
-                  <h2 className="text-2xl font-bold text-white mb-4">Usage</h2>
-                  <CodeBlock
-                    code={pythonCode}
-                    language="python"
-                    title="main.py"
-                  />
-                </div>
-
-                {}
-                {}
-              </>
-            )}
+            {selectedLanguage === "nodejs" && <NodeJsUsage />}
+            {selectedLanguage === "python" && <PythonUsage />}
+            {selectedLanguage === "dotnet" && <DotNetUsage />}
           </div>
         </div>
       </section>

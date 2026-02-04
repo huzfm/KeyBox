@@ -36,7 +36,7 @@ describe("Project Controller", () => {
 
       expect(response.status).toBe(201);
       expect(response.body.message).toBe(
-        "Project and License created successfully"
+        "Project and License created successfully",
       );
       expect(response.body.project).toBeDefined();
       expect(response.body.license).toBeDefined();
@@ -47,10 +47,7 @@ describe("Project Controller", () => {
       expect(response.body.license.key).toBeDefined();
       expect(response.body.license.duration).toBe(12);
       expect(response.body.license.status).toBe(Status.PENDING);
-      expect(response.body.license.services).toEqual([
-        "Hosting",
-        "Domain",
-      ]);
+      expect(response.body.license.services).toEqual(["Hosting", "Domain"]);
 
       const project = await Project.findById(response.body.project._id);
       expect(project).toBeTruthy();
@@ -167,18 +164,19 @@ describe("Project Controller", () => {
     });
 
     it("should reject project creation without authentication", async () => {
-      const response = await request(app).post("/projects/createProject").send({
-        clientId,
-        projectName: "Test Project",
-        duration: 6,
-        services: ["API"],
-      });
+      const response = await request(app)
+        .post("/projects/createProject")
+        .send({
+          clientId,
+          projectName: "Test Project",
+          duration: 6,
+          services: ["API"],
+        });
 
       expect(response.status).toBe(401);
     });
 
     it("should handle transaction rollback on error", async () => {
-
       const initialProjectCount = await Project.countDocuments();
       const initialLicenseCount = await License.countDocuments();
 

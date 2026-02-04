@@ -24,7 +24,7 @@ import {
   CreditCard,
 } from "lucide-react";
 
-type LicenseStatus = "ACTIVE" | "PENDING" | "REVOKED";
+type LicenseStatus = "ACTIVE" | "PENDING" | "REVOKED" | "EXPIRED";
 
 interface License {
   _id: string;
@@ -95,9 +95,15 @@ export default function ClientsTree({ clients, onToggle }: ClientsTreeProps) {
         return "bg-amber-500/10 text-amber-600 border-amber-500/20";
       case "REVOKED":
         return "bg-red-500/10 text-white border-red-500/20";
+      case "EXPIRED":
+        return "bg-slate-500/10 text-slate-400 border-slate-500/20";
       default:
         return "bg-slate-500/10 text-slate-600 border-slate-500/20";
     }
+  };
+
+  const isToggleable = (status: LicenseStatus) => {
+    return status === "ACTIVE" || status === "REVOKED";
   };
 
   return (
@@ -284,41 +290,53 @@ export default function ClientsTree({ clients, onToggle }: ClientsTreeProps) {
                                           </Badge>
                                         </td>
                                         <td className="py-4 px-4 text-right">
-                                          {license.status !== "PENDING" ? (
-                                            <Button
+                                          {isToggleable(license.status) ? (
+                                            <button
                                               onClick={() =>
                                                 handleToggle(license.key)
                                               }
                                               disabled={
                                                 isTogglingKey === license.key
                                               }
-                                              variant={
+                                              className={`group relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-all duration-300 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ${
+                                                isTogglingKey === license.key
+                                                  ? "opacity-60 cursor-wait"
+                                                  : "hover:opacity-90"
+                                              } ${
                                                 license.status === "ACTIVE"
-                                                  ? "destructive"
-                                                  : "default"
-                                              }
-                                              size="sm"
-                                              className="text-xs text-white hover:text-white"
+                                                  ? "bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.4)] focus-visible:ring-emerald-500"
+                                                  : "bg-gradient-to-r from-slate-600 to-slate-500 shadow-inner focus-visible:ring-slate-400"
+                                              }`}
+                                              title={license.status === "ACTIVE" ? "Click to revoke" : "Click to activate"}
+                                              aria-label={license.status === "ACTIVE" ? "Revoke license" : "Activate license"}
                                             >
-                                              {isTogglingKey === license.key ? (
-                                                "Loading..."
-                                              ) : license.status ===
-                                                "ACTIVE" ? (
-                                                <>
-                                                  <XCircle className="h-3 w-3 mr-1" />
-                                                  Revoke
-                                                </>
-                                              ) : (
-                                                <>
-                                                  <CheckCircle2 className="h-3 w-3 mr-1" />
-                                                  Activate
-                                                </>
-                                              )}
-                                            </Button>
+                                              <span
+                                                className={`pointer-events-none relative inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition-all duration-300 ease-in-out ${
+                                                  license.status === "ACTIVE"
+                                                    ? "translate-x-5"
+                                                    : "translate-x-0.5"
+                                                } ${
+                                                  isTogglingKey === license.key ? "" : "group-hover:shadow-xl"
+                                                }`}
+                                              >
+                                                {isTogglingKey === license.key && (
+                                                  <span className="absolute inset-0 flex items-center justify-center">
+                                                    <span className="h-3 w-3 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+                                                  </span>
+                                                )}
+                                              </span>
+                                            </button>
                                           ) : (
-                                            <span className="text-xs text-slate-400 italic">
-                                              License not activated yet
-                                            </span>
+                                            <div className="inline-flex items-center gap-2">
+                                              <span
+                                                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full bg-slate-700/50 opacity-50 cursor-not-allowed`}
+                                              >
+                                                <span className="pointer-events-none inline-block h-5 w-5 translate-x-0.5 rounded-full bg-slate-400 shadow" />
+                                              </span>
+                                              <span className="text-xs text-slate-500">
+                                                {license.status === "PENDING" ? "Pending" : "Expired"}
+                                              </span>
+                                            </div>
                                           )}
                                         </td>
                                       </tr>

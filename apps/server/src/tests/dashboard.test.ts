@@ -20,7 +20,6 @@ describe("Dashboard Controller", () => {
 
   describe("GET /dashboard", () => {
     it("should return full dashboard data for user", async () => {
-
       const client1 = await createTestClient(userId, {
         name: "Client 1",
         email: "client1@example.com",
@@ -43,12 +42,12 @@ describe("Dashboard Controller", () => {
       await createTestLicense(
         userId,
         client1._id.toString(),
-        project1._id.toString()
+        project1._id.toString(),
       );
       await createTestLicense(
         userId,
         client1._id.toString(),
-        project2._id.toString()
+        project2._id.toString(),
       );
 
       const response = await request(app)
@@ -120,7 +119,6 @@ describe("Dashboard Controller", () => {
     });
 
     it("should only return data for authenticated user", async () => {
-
       await createTestClient(userId);
 
       const user2 = await createTestUser({ email: "user2@example.com" });

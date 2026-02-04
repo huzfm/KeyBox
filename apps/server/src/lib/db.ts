@@ -1,33 +1,20 @@
 import mongoose from "mongoose";
-import dotenv from "dotenv";
-dotenv.config();
-
-mongoose.set("bufferCommands", false);
 
 const MONGO_URI = process.env.MONGO_URI as string;
 
 if (!MONGO_URI) {
-  throw new Error("MONGO_URI is not defined");
-}
-
-let cached = (global as any).mongoose;
-
-if (!cached) {
-  cached = (global as any).mongoose = {
-    conn: null,
-    promise: null,
-  };
+  throw new Error("Missing MONGO_URI");
 }
 
 export async function connectDB() {
-  if (cached.conn) return cached.conn;
-
-  if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGO_URI, {
-      serverSelectionTimeoutMS: 5000,
-    });
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.disconnect();
   }
 
-  cached.conn = await cached.promise;
-  return cached.conn;
+  const conn = await mongoose.connect(MONGO_URI, {
+    serverSelectionTimeoutMS: 5000,
+  });
+
+  console.log("MongoDB connected (new connection)");
+  return conn;
 }

@@ -16,11 +16,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Mail, ShieldX, KeyRound } from "lucide-react";
+import { LogOut } from "lucide-react";
 import Cookies from "js-cookie";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -38,25 +37,20 @@ function DashboardContent() {
   useEffect(() => {
     const token = searchParams.get("token");
     if (token) {
-
       Cookies.set("jwt", token, {
         expires: 7,
         sameSite: "strict",
       });
 
       setTokenProcessed(true);
-
       router.replace("/dashboard");
     } else {
-
       setTokenProcessed(true);
     }
   }, [searchParams, router]);
 
   const isAuthorized = useMemo(() => {
-
     if (!tokenProcessed) return false;
-
     const jwt = Cookies.get("jwt");
     return !!jwt;
   }, [tokenProcessed]);
@@ -76,7 +70,6 @@ function DashboardContent() {
   }, [tokenProcessed]);
 
   useEffect(() => {
-
     if (tokenProcessed) {
       setIsChecking(false);
     }
@@ -98,11 +91,9 @@ function DashboardContent() {
   if (!isAuthorized) {
     return (
       <div className="min-h-screen bg-background relative flex items-center justify-center">
-        {}
         <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:35px_35px]" />
 
         <div className="relative z-10 text-center px-4">
-
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
             Access Denied
           </h1>
@@ -129,10 +120,8 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-background relative">
-      {}
       <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:35px_35px]" />
 
-      {}
       <div className="bg-card/50 top-0 z-10">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           <div className="flex items-center justify-between gap-2 sm:gap-3">
@@ -145,47 +134,65 @@ function DashboardContent() {
               </p>
             </div>
 
-            {}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="h-9 w-9 rounded-full bg-slate-700 border border-slate-600 flex items-center justify-center text-slate-200 font-medium text-sm hover:bg-slate-600 transition-colors duration-150 focus:outline-none focus:ring-1 focus:ring-slate-500">
-                  {userInfo.email ? userInfo.email.charAt(0).toUpperCase() : "U"}
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" sideOffset={8} className="w-56 p-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg">
-                {}
-                <div className="px-3 py-2">
-                  <p className="text-xs text-slate-500 uppercase tracking-wide">Signed in as</p>
-                  <p className="text-sm text-white font-medium mt-0.5 truncate">
-                    {userInfo.email || "user@example.com"}
-                  </p>
-                </div>
+            {/* RIGHT SIDE ACTIONS */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Docs / SDK buttons */}
+              <div className=" sm:flex items-center gap-2">
+                
 
-                <DropdownMenuSeparator className="bg-slate-700 my-1" />
+                <Link href="/docs">
+                  <Button
+                    size="sm"
+                    className="border- border-white bg-white/70 text-black hover:bg-white/50"
+                  >
+                    SDK Usage
+                  </Button>
+                </Link>
+              </div>
 
-                <DropdownMenuItem 
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 px-3 py-2 mx-1 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer text-sm"
+              {/* User dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="h-9 w-9 rounded-full bg-slate-700 border border-slate-600 flex items-center justify-center text-slate-200 font-medium text-sm hover:bg-slate-600 transition-colors duration-150 focus:outline-none focus:ring-1 focus:ring-slate-500">
+                    {userInfo.email ? userInfo.email.charAt(0).toUpperCase() : "U"}
+                  </button>
+                </DropdownMenuTrigger>
+
+                <DropdownMenuContent
+                  align="end"
+                  sideOffset={8}
+                  className="w-56 p-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg"
                 >
-                  <LogOut className="h-4 w-4" />
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <div className="px-3 py-2">
+                    <p className="text-xs text-slate-500 uppercase tracking-wide">Signed in as</p>
+                    <p className="text-sm text-white font-medium mt-0.5 truncate">
+                      {userInfo.email || "user@example.com"}
+                    </p>
+                  </div>
+
+                  <DropdownMenuSeparator className="bg-slate-700 my-1" />
+
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-3 py-2 mx-1 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 focus:bg-slate-700 cursor-pointer text-sm"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </div>
 
-      {}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
-          {}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <CreateClient onCreate={createClient.mutateAsync} />
             <CreateProject clients={clients} onCreate={createProject.mutateAsync} />
           </div>
 
-          {}
           <div>
             <div className="mb-6">
               <h2 className="text-xl font-semibold">Clients & Projects</h2>
@@ -214,11 +221,13 @@ function DashboardContent() {
 
 export default function DashboardClient() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-slate-400">Loading dashboard...</div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="animate-pulse text-slate-400">Loading dashboard...</div>
+        </div>
+      }
+    >
       <DashboardContent />
     </Suspense>
   );

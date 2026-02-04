@@ -90,7 +90,7 @@ describe("License Controller", () => {
       });
 
       const response = await request(app).patch(
-        `/license/revoke/${license.key}`
+        `/license/revoke/${license.key}`,
       );
 
       expect(response.status).toBe(200);
@@ -105,7 +105,7 @@ describe("License Controller", () => {
       });
 
       const response = await request(app).patch(
-        `/license/revoke/${license.key}`
+        `/license/revoke/${license.key}`,
       );
 
       expect(response.status).toBe(200);
@@ -115,7 +115,7 @@ describe("License Controller", () => {
 
     it("should return 404 for non-existent license key", async () => {
       const response = await request(app).patch(
-        "/license/revoke/NONEXISTENT-KEY"
+        "/license/revoke/NONEXISTENT-KEY",
       );
 
       expect(response.status).toBe(404);
@@ -150,9 +150,7 @@ describe("License Controller", () => {
         .set("Authorization", `Bearer ${authToken}`);
 
       expect(response.status).toBe(200);
-      expect(response.body.message).toBe(
-        "User details successfully retrieved"
-      );
+      expect(response.body.message).toBe("User details successfully retrieved");
       expect(response.body.user).toBeDefined();
       expect(response.body.licenseCount).toBeGreaterThan(0);
     });

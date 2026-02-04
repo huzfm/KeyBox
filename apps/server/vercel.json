@@ -11,5 +11,11 @@
       "src": "/(.*)",
       "dest": "src/app.ts"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/expire-licenses",
+      "schedule": "0 0 * * *"
+    }
   ]
 }

@@ -1,8 +1,9 @@
-import 'dotenv/config'
-import session from 'express-session'
-import passport from 'passport'
-import googleAuthRoutes from "./routes/googleAuth.routes"
-import "./config/googleStrategy"
+import "dotenv/config";
+import session from "express-session";
+import passport from "passport";
+import { NextFunction } from "express";
+import googleAuthRoutes from "./routes/googleAuth.routes";
+import "./config/googleStrategy";
 
 import express, { Application, Request, Response } from "express";
 import morgan from "morgan";
@@ -18,26 +19,28 @@ import projectRoutes from "./routes/project.routes";
 import dashboardRoutes from "./routes/dashboard.routes";
 
 const app: Application = express();
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-session-secret',
-  resave: false,
-  saveUninitialized: false,
-}))
-app.use(passport.initialize())
-app.use(passport.session())
-app.use('/', googleAuthRoutes)
-
-app.use(express.json());
-app.use(morgan("dev"));
-app.use(helmet());
 app.use(
   cors({
     origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-  })
+  }),
 );
+app.use(express.json());
+app.use(morgan("dev"));
+app.use(helmet());
 
-if (process.env.NODE_ENV !== 'test') {
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "your-session-secret",
+    resave: false,
+    saveUninitialized: false,
+  }),
+);
+app.use(passport.initialize());
+app.use(passport.session());
+app.use("/", googleAuthRoutes);
+
+if (process.env.NODE_ENV !== "test") {
   app.use(ensureDB);
 }
 
@@ -47,6 +50,15 @@ app.use("/validate", validateKey);
 app.use("/clients", clientRoutes);
 app.use("/projects", projectRoutes);
 app.use("/dashboard", dashboardRoutes);
+
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  console.error("Global Error:", err);
+
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal server error",
+  });
+});
 
 app.get("/", (_req: Request, res: Response) => {
   res.json({

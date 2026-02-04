@@ -24,13 +24,16 @@ export default async function HomeNavbar() {
           </div>
           <span className="text-lg sm:text-xl lg:text-2xl text-white font-bold truncate font-mono ">
             KeyBox
+            <span className="text-xs font-semibold">
+             {' '}  v1.0.0
+              </span> 
           </span>
         </div>
 
         {/* Navigation Section */}
         <div className="flex items-center gap-3 sm:gap-5">
           <a
-            href="https://github.com/your-repo"
+            href="https://github.com/huzfm/keybox"
             target="_blank"
             rel="noopener noreferrer"
             className="text-white transition"
@@ -39,7 +42,7 @@ export default async function HomeNavbar() {
           </a>
 
           <a
-            href="https://twitter.com/your-handle"
+            href="https://x.com/huzfm"
             target="_blank"
             rel="noopener noreferrer"
             className="text-white transition"

@@ -1,7 +1,7 @@
 import request from "supertest";
 import app from "../app";
 import { User, Role } from "../models/User";
-import { createTestUser} from "./helpers/testHelpers";
+import { createTestUser } from "./helpers/testHelpers";
 
 describe("Authentication Controller", () => {
   describe("POST /auth/signup", () => {
@@ -55,12 +55,11 @@ describe("Authentication Controller", () => {
 
       expect(response.status).toBe(400);
       expect(response.body.message).toBe(
-        "Password must be at least 6 characters long"
+        "Password must be at least 6 characters long",
       );
     });
 
     it("should reject signup with duplicate email", async () => {
-
       await createTestUser({ email: "john@example.com" });
 
       const response = await request(app).post("/auth/signup").send({
@@ -79,7 +78,6 @@ describe("Authentication Controller", () => {
     let testUserEmail: string;
 
     beforeEach(async () => {
-
       testUserEmail = `testuser-${Date.now()}@example.com`;
       await createTestUser({
         email: testUserEmail,
@@ -121,7 +119,6 @@ describe("Authentication Controller", () => {
     });
 
     it("should reject login for OAuth users without password", async () => {
-
       await createTestUser({
         email: "oauth@example.com",
         password_hash: undefined,
@@ -139,7 +136,6 @@ describe("Authentication Controller", () => {
 
   describe("GET /auth/users", () => {
     it("should return all users without password hashes", async () => {
-
       await createTestUser({ email: "user1@example.com" });
       await createTestUser({ email: "user2@example.com" });
       await createTestUser({ email: "user3@example.com" });
@@ -164,5 +160,3 @@ describe("Authentication Controller", () => {
     });
   });
 });
-
- 

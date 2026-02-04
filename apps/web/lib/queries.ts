@@ -43,7 +43,7 @@ export const useToggleLicense = () => {
 
   return useMutation({
     mutationFn: async (key: string) => {
-      await api.patch(`license/revoke/${key}`);
+      await api.patch(`/license/revoke/${key}`);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dashboard"] }),
   });

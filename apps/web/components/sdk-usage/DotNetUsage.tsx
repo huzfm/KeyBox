@@ -1,0 +1,41 @@
+"use client";
+
+import CodeBlock from "../ui/CodeBlock";
+
+export default function DotNetUsage() {
+  const dotnetCode = `using KeyboxSdk;
+
+DotNetEnv.Env.Load();
+
+var builder = WebApplication.CreateBuilder(args);
+var app = builder.Build();
+
+app.UseHttpsRedirection();
+
+app.MapGet("/", () => "Hello World!");
+
+await app.RunProtectedAsync(
+    productName: "MyNodeApp",
+    key: Environment.GetEnvironmentVariable("KEYBOX_LICENSE_KEY") ?? throw new InvalidOperationException("KEYBOX_LICENSE_KEY is missing"),
+    intervalSeconds: 86400, // once in 24hours);`;
+
+  return (
+    <>
+      {/* Installation */}
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-4">Installation</h2>
+        <CodeBlock
+          code="dotnet add package KeyboxSdk"
+          language="bash"
+          title="Install KeyBox SDK"
+        />
+      </div>
+
+      {/* Usage */}
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-4">Usage</h2>
+        <CodeBlock code={dotnetCode} language="csharp" title="Program.cs" />
+      </div>
+    </>
+  );
+}
