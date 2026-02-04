@@ -43,7 +43,8 @@ KeyBox/
 
 - Node.js 18+
 - pnpm
-- Python 3.10+ (for Python SDK)
+- Python 3.10+ (for Python SDK) 
+- Dotent (for Dotnet SDK)
 
 ---
 
