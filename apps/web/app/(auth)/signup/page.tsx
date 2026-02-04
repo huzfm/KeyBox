@@ -6,6 +6,8 @@ import { useMutation } from "@tanstack/react-query";
 import { signupUser } from "@/app/api/auth";
 import type { AxiosError } from "axios";
 import { UserPlus, Eye, EyeOff } from "lucide-react";
+import Cookies from "js-cookie";
+import { useEffect } from "react";
 
 type APIError = {
   message?: string;
@@ -16,6 +18,12 @@ export default function SignupPage() {
   const [msg, setMsg] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  useEffect(() => {
+    if (Cookies.get("jwt")) {
+      router.push("/dashboard");
+    }
+  }, [router]);
 
   const [form, setForm] = useState({
     name: "",
@@ -202,7 +210,9 @@ export default function SignupPage() {
                   <div className="w-full border-t border-black/20"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-black/60">Or continue with</span>
+                  <span className="px-2 bg-white text-black/60">
+                    Or continue with
+                  </span>
                 </div>
               </div>
 

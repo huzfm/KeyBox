@@ -8,6 +8,7 @@ import Cookies from "js-cookie";
 import type { AxiosError } from "axios";
 import { Lock, LockOpen, Mail, Eye, EyeOff } from "lucide-react";
 import { loginUser } from "@/app/api/auth";
+import { useEffect } from "react";
 import { toast } from "sonner";
 
 type APIError = {
@@ -36,6 +37,12 @@ function LoginContent() {
   const [msg, setMsg] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    if (Cookies.get("jwt")) {
+      router.push("/dashboard");
+    }
+  }, [router]);
 
   const [form, setForm] = useState({
     email: "",
@@ -173,7 +180,9 @@ function LoginContent() {
                   <div className="w-full border-t border-black/20"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-black/60">Or continue with</span>
+                  <span className="px-2 bg-white text-black/60">
+                    Or continue with
+                  </span>
                 </div>
               </div>
 

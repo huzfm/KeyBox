@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { Github, Twitter, KeyRound } from "lucide-react";
+import { cookies } from "next/headers";
 
-export default function HomeNavbar() {
+export default async function HomeNavbar() {
+  const cookieStore = await cookies();
+  const isLoggedIn = cookieStore.get("jwt");
+
   return (
     <header className="sticky top-0 z-50">
       <div
@@ -13,7 +17,7 @@ export default function HomeNavbar() {
           lg:px-60 lg:py-6    
         "
       >
-        {}
+        {/* Logo Section */}
         <div className="flex items-center gap-2 ring-1 ring-white/20 bg-black rounded-2xl px-2 py-2 text-white shadow-md shadow-blue-500/20 hover:shadow-blue-500/40 transition-all duration-300">
           <div className="w-8 h-8 flex items-center justify-center shrink-0 ">
             <KeyRound className="w-7 h-7 text-white" />
@@ -26,7 +30,7 @@ export default function HomeNavbar() {
           </span>
         </div>
 
-        {}
+        {/* Navigation Section */}
         <div className="flex items-center gap-3 sm:gap-5">
           <a
             href="https://github.com/huzfm/keybox"
@@ -47,7 +51,7 @@ export default function HomeNavbar() {
           </a>
 
           <Link
-            href="/login"
+            href={isLoggedIn ? "/dashboard" : "/login"}
             className="
               px-3 py-1.5 sm:px-4 sm:py-2
               text-xs sm:text-sm
@@ -55,7 +59,7 @@ export default function HomeNavbar() {
               bg-black border rounded-lg transition
             "
           >
-            Login
+            {isLoggedIn ? "Dashboard" : "Login"}
           </Link>
         </div>
       </div>
