@@ -1,6 +1,10 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 
-export default function HomeSections() {
+export default async function HomeSections() {
+  const cookieStore = await cookies();
+  const isLoggedIn = cookieStore.get("jwt");
+
   return (
     <section
       className="
@@ -20,7 +24,7 @@ export default function HomeSections() {
         </p>
 
         <div className="flex justify-center">
-          <Link href="/signup">
+          <Link href={isLoggedIn ? "/dashboard" : "/signup"}>
             <button
               className="
                 px-5 py-2.5 sm:px-6 sm:py-3 
@@ -30,7 +34,7 @@ export default function HomeSections() {
                 transition-shadow duration-300
               "
             >
-              Get Started
+              {isLoggedIn ? "Dashboard" : "Get Started"}
             </button>
           </Link>
         </div>
