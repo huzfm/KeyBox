@@ -25,7 +25,7 @@ await app.RunProtectedAsync(
       <div>
         <h2 className="text-2xl font-bold text-white mb-4">Installation</h2>
         <CodeBlock
-          code="dotnet add package KeyboxSdk"
+          code="dotnet add package KeyboxSdk --version 1.0.0"
           language="bash"
           title="Install KeyBox SDK"
         />
