@@ -1,4 +1,3 @@
-
 import { Request, Response } from "express";
 import { License, Status } from "../models/License";
 
@@ -48,6 +47,18 @@ export const validateLicense = async (req: Request, res: Response) => {
     }
 
     if (license.status === Status.ACTIVE) {
+      const now = new Date();
+      if (now > license.expiresAt) {
+        license.status = Status.EXPIRED;
+        await license.save();
+        return res.json({
+          valid: false,
+          status: "expired",
+          message: "License has expired",
+          expiresAt: license.expiresAt,
+        });
+      }
+
       return res.json({
         valid: true,
         status: "active",
@@ -113,23 +124,22 @@ export const activateLicense = async (req: Request, res: Response) => {
       });
     }
 
-const issuedAt = new Date();
-const expiresAt = new Date();
-expiresAt.setMonth(expiresAt.getMonth() + license.duration);
+    const issuedAt = new Date();
+    const expiresAt = new Date();
+    expiresAt.setMonth(expiresAt.getMonth() + license.duration);
 
-license.status = Status.ACTIVE;
-license.issuedAt = issuedAt;
-license.expiresAt = expiresAt;
+    license.status = Status.ACTIVE;
+    license.issuedAt = issuedAt;
+    license.expiresAt = expiresAt;
 
-await license.save();
+    await license.save();
 
-return res.json({
-  success: true,
-  message: "License activated successfully",
-  activatedAt: issuedAt,
-  expiresAt,
-});
-
+    return res.json({
+      success: true,
+      message: "License activated successfully",
+      activatedAt: issuedAt,
+      expiresAt,
+    });
   } catch (error) {
     return res.status(500).json({
       success: false,
