@@ -53,17 +53,24 @@ export default function CreateProject({
     setServices((prev) =>
       prev.includes(service)
         ? prev.filter((s) => s !== service)
-        : [...prev, service]
+        : [...prev, service],
     );
   };
 
   const handleCreate = async () => {
-    const durationNum = typeof duration === 'number' ? duration : parseInt(String(duration));
-    if (!clientId || !projectName.trim() || !durationNum || isNaN(durationNum)) return;
+    const durationNum =
+      typeof duration === "number" ? duration : parseInt(String(duration));
+    if (!clientId || !projectName.trim() || !durationNum || isNaN(durationNum))
+      return;
 
     setIsCreating(true);
     try {
-      await onCreate({ clientId, projectName, duration: durationNum, services });
+      await onCreate({
+        clientId,
+        projectName,
+        duration: durationNum,
+        services,
+      });
       toast.success("Project created successfully!");
       setProjectName("");
       setDuration("");
@@ -106,20 +113,21 @@ export default function CreateProject({
             value={projectName}
             onChange={(e) =>
               setProjectName(
-                (e.currentTarget as unknown as { value: string }).value
+                (e.currentTarget as unknown as { value: string }).value,
               )
             }
             className="bg-muted/50 border-border/50"
           />
 
           <Input
-
             type="number"
             min={1}
             max={12}
             value={duration}
             onChange={(e) => {
-              const value = Number((e.currentTarget as unknown as { value: string }).value);
+              const value = Number(
+                (e.currentTarget as unknown as { value: string }).value,
+              );
 
               if (value > 12) {
                 setDuration(12);
@@ -133,6 +141,21 @@ export default function CreateProject({
             placeholder="Duration in months"
           />
         </div>
+        {duration && typeof duration === "number" && duration > 0 && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 p-2 rounded-md border border-border/30 w-fit mx-auto animate-in fade-in slide-in-from-top-1">
+            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>License will expire on:</span>
+            <span className="font-semibold text-foreground">
+              {new Date(
+                new Date().setMonth(new Date().getMonth() + duration),
+              ).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </span>
+          </div>
+        )}
 
         <div className="flex flex-col items-center gap-3">
           <span className="text-sm text-muted-foreground">Services:</span>
@@ -148,16 +171,27 @@ export default function CreateProject({
                     relative px-4 py-2 rounded-full text-sm font-medium
                     transition-all duration-200 ease-out
                     border-2 
-                    ${isSelected
-                      ? "bg-slate-100 text-black"
-                      : "bg-muted/50 text-muted-foreground border-border/50 hover:border-primary/50 hover:text-foreground"
+                    ${
+                      isSelected
+                        ? "bg-slate-100 text-black"
+                        : "bg-muted/50 text-muted-foreground border-border/50 hover:border-primary/50 hover:text-foreground"
                     }
                   `}
                 >
                   <span className="flex items-center gap-2">
                     {isSelected && (
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
                       </svg>
                     )}
                     {service}
@@ -169,7 +203,12 @@ export default function CreateProject({
 
           <Button
             onClick={handleCreate}
-            disabled={!clientId || !projectName.trim() || services.length === 0 || isCreating}
+            disabled={
+              !clientId ||
+              !projectName.trim() ||
+              services.length === 0 ||
+              isCreating
+            }
             className="mx-auto bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             {isCreating ? "Creating..." : "Create Project & License"}
