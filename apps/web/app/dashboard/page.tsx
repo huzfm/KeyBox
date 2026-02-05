@@ -37,8 +37,9 @@ function DashboardContent() {
   useEffect(() => {
     const token = searchParams.get("token");
     if (token) {
+      const expiryDate = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
       Cookies.set("jwt", token, {
-        expires: 7,
+        expires: expiryDate,
         sameSite: "strict",
       });
 
