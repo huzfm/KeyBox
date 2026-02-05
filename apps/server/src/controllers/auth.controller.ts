@@ -72,8 +72,8 @@ export const login = async (req: Request<LoginBody>, res: Response) => {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     if (!user.password_hash) {
-      return res.status(400).json({ 
-        message: "This account uses Google sign-in. Please login with Google." 
+      return res.status(400).json({
+        message: "This account uses Google sign-in. Please login with Google.",
       });
     }
 
@@ -87,7 +87,7 @@ export const login = async (req: Request<LoginBody>, res: Response) => {
         role: user.role,
       },
       process.env.JWT_SECRET || "defaultsecret",
-      { expiresIn: "1h" }
+      { expiresIn: "30m" },
     );
 
     return res.json({
@@ -126,7 +126,7 @@ export const editUser = async (req: Request, res: Response) => {
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { name, email, role, company_name },
-      { new: true }
+      { new: true },
     ).select("-password_hash");
     if (!updatedUser) {
       return res.status(404).json({ message: "User not found" });

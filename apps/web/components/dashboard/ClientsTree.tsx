@@ -31,6 +31,9 @@ interface License {
   key: string;
   services?: string;
   status: LicenseStatus;
+  duration: number;
+  issuedAt: string | Date;
+  expiresAt: string | Date;
 }
 
 interface Project {
@@ -106,6 +109,48 @@ export default function ClientsTree({ clients, onToggle }: ClientsTreeProps) {
     return status === "ACTIVE" || status === "REVOKED";
   };
 
+  const getExpiryStyle = (
+    issuedAt: string | Date,
+    expiresAt: string | Date,
+  ) => {
+    const start = new Date(issuedAt).getTime();
+    const end = new Date(expiresAt).getTime();
+    const now = new Date().getTime();
+
+    const total = end - start;
+    const remaining = end - now;
+    const percentage = (remaining / total) * 100;
+
+    if (percentage > 80) {
+      return {
+        container: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
+        label: "text-emerald-500/70",
+        value: "text-emerald-300",
+      };
+    } else if (percentage >= 30) {
+      return {
+        container: "bg-amber-500/10 border-amber-500/30 text-amber-400",
+        label: "text-amber-500/70",
+        value: "text-amber-300",
+      };
+    } else {
+      return {
+        container:
+          "bg-rose-500/10 border-rose-500/30 text-rose-400 animate-pulse",
+        label: "text-rose-500/70",
+        value: "text-rose-300",
+      };
+    }
+  };
+
+  const formatDate = (date: string | Date) => {
+    return new Date(date).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
   return (
     <div className="space-y-4">
       {clients.length === 0 ? (
@@ -176,11 +221,63 @@ export default function ClientsTree({ clients, onToggle }: ClientsTreeProps) {
                           className="border-slate-700/50 bg-slate-700/30 backdrop-blur-sm overflow-hidden"
                         >
                           <CardHeader className="pb-4 border-b border-slate-700/30">
-                            <div className="flex items-center gap-2">
-                              <FileText className="h-4 w-4 text-slate-400 shrink-0" />
-                              <CardTitle className="text-sm font-semibold text-white">
-                                {project.name}
-                              </CardTitle>
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-slate-400 shrink-0" />
+                                <CardTitle className="text-sm font-semibold text-white">
+                                  {project.name}
+                                </CardTitle>
+                              </div>
+                              {project.licenses &&
+                                project.licenses.length > 0 &&
+                                (() => {
+                                  const firstLicense = project.licenses[0];
+
+                                  if (firstLicense.status === "PENDING") {
+                                    return (
+                                      <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider px-2 py-1 rounded border shadow-sm bg-slate-800/50 border-slate-700/50 text-slate-400">
+                                        <span className="font-semibold text-slate-500">
+                                          Status:
+                                        </span>
+                                        <span className="font-mono font-bold text-slate-300">
+                                          Starts on Activation (
+                                          {firstLicense.duration} Months)
+                                        </span>
+                                      </div>
+                                    );
+                                  }
+
+                                  if (firstLicense.status === "EXPIRED") {
+                                    return (
+                                      <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider px-2 py-1 rounded border shadow-sm bg-rose-500/10 border-rose-500/30 text-rose-400">
+                                        <span className="font-mono font-bold text-rose-300">
+                                          License Has Been Expired
+                                        </span>
+                                      </div>
+                                    );
+                                  }
+
+                                  const styles = getExpiryStyle(
+                                    firstLicense.issuedAt,
+                                    firstLicense.expiresAt,
+                                  );
+                                  return (
+                                    <div
+                                      className={`flex items-center gap-2 text-[10px] uppercase tracking-wider px-2 py-1 rounded border shadow-sm transition-colors duration-500 ${styles.container}`}
+                                    >
+                                      <span
+                                        className={`font-semibold ${styles.label}`}
+                                      >
+                                        Expires:
+                                      </span>
+                                      <span
+                                        className={`font-mono font-bold ${styles.value}`}
+                                      >
+                                        {formatDate(firstLicense.expiresAt)}
+                                      </span>
+                                    </div>
+                                  );
+                                })()}
                             </div>
                           </CardHeader>
 
@@ -196,6 +293,7 @@ export default function ClientsTree({ clients, onToggle }: ClientsTreeProps) {
                                       <th className="text-left py-3 px-4 text-slate-300">
                                         Services
                                       </th>
+
                                       <th className="text-left py-3 px-4 text-slate-300">
                                         Status
                                       </th>
@@ -254,9 +352,13 @@ export default function ClientsTree({ clients, onToggle }: ClientsTreeProps) {
                                         <td className="py-4 px-4">
                                           <div className="flex flex-wrap gap-1.5">
                                             {license.services ? (
-                                              (Array.isArray(license.services) 
-                                                ? license.services 
-                                                : license.services.split(",").map((s: string) => s.trim())
+                                              (Array.isArray(license.services)
+                                                ? license.services
+                                                : license.services
+                                                    .split(",")
+                                                    .map((s: string) =>
+                                                      s.trim(),
+                                                    )
                                               ).map((service: string) => (
                                                 <span
                                                   key={service}
@@ -266,15 +368,18 @@ export default function ClientsTree({ clients, onToggle }: ClientsTreeProps) {
                                                 </span>
                                               ))
                                             ) : (
-                                              <span className="text-slate-500 text-xs">No services</span>
+                                              <span className="text-slate-500 text-xs">
+                                                No services
+                                              </span>
                                             )}
                                           </div>
                                         </td>
+
                                         <td className="py-4 px-4">
                                           <Badge
                                             variant="outline"
                                             className={`${getStatusColor(
-                                              license.status
+                                              license.status,
                                             )} capitalize text-xs`}
                                           >
                                             {license.status === "PENDING" && (
@@ -307,8 +412,16 @@ export default function ClientsTree({ clients, onToggle }: ClientsTreeProps) {
                                                   ? "bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.4)] focus-visible:ring-emerald-500"
                                                   : "bg-gradient-to-r from-slate-600 to-slate-500 shadow-inner focus-visible:ring-slate-400"
                                               }`}
-                                              title={license.status === "ACTIVE" ? "Click to revoke" : "Click to activate"}
-                                              aria-label={license.status === "ACTIVE" ? "Revoke license" : "Activate license"}
+                                              title={
+                                                license.status === "ACTIVE"
+                                                  ? "Click to revoke"
+                                                  : "Click to activate"
+                                              }
+                                              aria-label={
+                                                license.status === "ACTIVE"
+                                                  ? "Revoke license"
+                                                  : "Activate license"
+                                              }
                                             >
                                               <span
                                                 className={`pointer-events-none relative inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition-all duration-300 ease-in-out ${
@@ -316,10 +429,13 @@ export default function ClientsTree({ clients, onToggle }: ClientsTreeProps) {
                                                     ? "translate-x-5"
                                                     : "translate-x-0.5"
                                                 } ${
-                                                  isTogglingKey === license.key ? "" : "group-hover:shadow-xl"
+                                                  isTogglingKey === license.key
+                                                    ? ""
+                                                    : "group-hover:shadow-xl"
                                                 }`}
                                               >
-                                                {isTogglingKey === license.key && (
+                                                {isTogglingKey ===
+                                                  license.key && (
                                                   <span className="absolute inset-0 flex items-center justify-center">
                                                     <span className="h-3 w-3 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
                                                   </span>
@@ -334,7 +450,9 @@ export default function ClientsTree({ clients, onToggle }: ClientsTreeProps) {
                                                 <span className="pointer-events-none inline-block h-5 w-5 translate-x-0.5 rounded-full bg-slate-400 shadow" />
                                               </span>
                                               <span className="text-xs text-slate-500">
-                                                {license.status === "PENDING" ? "Pending" : "Expired"}
+                                                {license.status === "PENDING"
+                                                  ? "Pending"
+                                                  : "Expired"}
                                               </span>
                                             </div>
                                           )}
@@ -364,10 +482,10 @@ export default function ClientsTree({ clients, onToggle }: ClientsTreeProps) {
           ))}
         </Accordion>
       )}
-      <CreateBillDialog 
-        client={billingClient} 
-        isOpen={!!billingClient} 
-        onOpenChange={(open) => !open && setBillingClient(null)} 
+      <CreateBillDialog
+        client={billingClient}
+        isOpen={!!billingClient}
+        onOpenChange={(open) => !open && setBillingClient(null)}
       />
     </div>
   );
