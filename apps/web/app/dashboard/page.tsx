@@ -25,7 +25,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 function DashboardContent() {
-  const { data: clients = [], isLoading } = useDashboard();
+  const { data: clients = [], isLoading, isError, error } = useDashboard();
   const createClient = useCreateClient();
   const createProject = useCreateProject();
   const toggleLicense = useToggleLicense();
@@ -88,17 +88,21 @@ function DashboardContent() {
     );
   }
 
-  if (!isAuthorized) {
+  const isUnauthorized = isError && (error as any)?.response?.status === 401;
+
+  if (!isAuthorized || isUnauthorized) {
     return (
       <div className="min-h-screen bg-background relative flex items-center justify-center">
         <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:35px_35px]" />
 
         <div className="relative z-10 text-center px-4">
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
-            Access Denied
+            {isUnauthorized ? "Session Expired" : "Access Denied"}
           </h1>
           <p className="text-slate-400 mb-8 max-w-md mx-auto">
-            You need to be logged in to access the dashboard. Please sign in with your developer account.
+            {isUnauthorized
+              ? "Your session has expired. Please log in again to continue managing your dashboard."
+              : "You need to be logged in to access the dashboard. Please sign in with your developer account."}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -108,7 +112,10 @@ function DashboardContent() {
               </Button>
             </Link>
             <Link href="/">
-              <Button variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800">
+              <Button
+                variant="outline"
+                className="border-slate-700 text-slate-300 hover:bg-slate-800"
+              >
                 Go to Home
               </Button>
             </Link>
@@ -138,8 +145,6 @@ function DashboardContent() {
             <div className="flex items-center gap-2 sm:gap-3">
               {/* Docs / SDK buttons */}
               <div className=" sm:flex items-center gap-2">
-                
-
                 <Link href="/docs">
                   <Button
                     size="sm"
@@ -154,7 +159,9 @@ function DashboardContent() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="h-9 w-9 rounded-full bg-slate-700 border border-slate-600 flex items-center justify-center text-slate-200 font-medium text-sm hover:bg-slate-600 transition-colors duration-150 focus:outline-none focus:ring-1 focus:ring-slate-500">
-                    {userInfo.email ? userInfo.email.charAt(0).toUpperCase() : "U"}
+                    {userInfo.email
+                      ? userInfo.email.charAt(0).toUpperCase()
+                      : "U"}
                   </button>
                 </DropdownMenuTrigger>
 
@@ -164,7 +171,9 @@ function DashboardContent() {
                   className="w-56 p-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg"
                 >
                   <div className="px-3 py-2">
-                    <p className="text-xs text-slate-500 uppercase tracking-wide">Signed in as</p>
+                    <p className="text-xs text-slate-500 uppercase tracking-wide">
+                      Signed in as
+                    </p>
                     <p className="text-sm text-white font-medium mt-0.5 truncate">
                       {userInfo.email || "user@example.com"}
                     </p>
@@ -190,7 +199,10 @@ function DashboardContent() {
         <div className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <CreateClient onCreate={createClient.mutateAsync} />
-            <CreateProject clients={clients} onCreate={createProject.mutateAsync} />
+            <CreateProject
+              clients={clients}
+              onCreate={createProject.mutateAsync}
+            />
           </div>
 
           <div>
@@ -224,7 +236,9 @@ export default function DashboardClient() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="animate-pulse text-slate-400">Loading dashboard...</div>
+          <div className="animate-pulse text-slate-400">
+            Loading dashboard...
+          </div>
         </div>
       }
     >
