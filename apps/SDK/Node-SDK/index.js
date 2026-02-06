@@ -9,10 +9,14 @@ function log(level, message, meta = {}) {
     );
 }
 
+/* ===================================================== */
+/* ACTIVATE LICENSE                                      */
+/* ===================================================== */
 export async function activateLicense({
     productName,
     key,
-    apiUrl = "https://api-keybox.vercel.app",
+    // apiUrl = "https://api-keybox.vercel.app",
+    apiUrl = "http://localhost:5000",
     endpoint = "/validate/activate",
 }) {
     if (!productName || !key) {
@@ -21,39 +25,39 @@ export async function activateLicense({
 
     log("INFO", "Activating license", { productName });
 
-    const response = await fetch(`${apiUrl}${endpoint}`, {
+    const res = await fetch(`${apiUrl}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key, productName }),
     });
 
-    const contentType = response.headers.get("content-type") || "";
-    if (!contentType.includes("application/json")) {
+    let data;
+    try {
+        data = await res.json();
+    } catch {
         throw new Error("License server did not return JSON");
     }
 
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-        throw new Error(data.message || "License activation failed");
+    if (!res.ok || data?.success === false) {
+        throw new Error(data?.message || "License activation failed");
     }
 
-    log("INFO", "License activated", {
-        status: data.status,
-        expiresAt: data.expiresAt,
-    });
-
+    log("INFO", "License activated");
     return data;
 }
 
+const DEFAULT_INTERVAL = 5; // 5 seconds (TEMPORARY FOR TESTING)
+
+/* ===================================================== */
+/* LICENSE DAEMON                                        */
+/* ===================================================== */
 export async function startLicenseDaemon({
     productName,
     key,
-    apiUrl = "https://api-keybox.vercel.app",
+    // apiUrl = "https://api-keybox.vercel.app",
+    apiUrl = "http://localhost:5000",
     endpoint = "/validate",
-    intervalSeconds = 86400,
-    onStart,
-    onStop,
+    onRevoke,
 }) {
     if (!productName || !key) {
         throw new Error("productName and key are required");
@@ -63,103 +67,99 @@ export async function startLicenseDaemon({
         log("INFO", "Validating license", { productName });
 
         try {
-            const response = await fetch(`${apiUrl}${endpoint}`, {
+            const res = await fetch(`${apiUrl}${endpoint}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ key, productName }),
             });
 
-            const contentType = response.headers.get("content-type") || "";
-            if (!contentType.includes("application/json")) {
-                throw new Error("License server did not return JSON");
+            let data;
+            try {
+                data = await res.json();
+            } catch {
+                throw new Error("Non-JSON response");
             }
 
-            const data = await response.json();
-            const currentState = data.valid ? "valid" : "invalid";
+            // ❌ ONLY STOP IF EXPLICITLY INVALID (and not a server error)
+            const isRevoked = data.valid === false && data.status !== "error" && data.status !== "server_error";
 
-            if (currentState !== lastState) {
-                log("INFO", "License state changed", {
-                    from: lastState,
-                    to: currentState,
-                    status: data.status,
-                });
-
-                lastState = currentState;
-
-                if (currentState === "valid") {
-                    onStart && onStart(data);
-                } else {
-                    onStop && onStop(data);
-                }
-            }
-        } catch (err) {
-            log("ERROR", "License validation error", { error: err.message });
-
-            if (lastState !== "invalid") {
+            if (isRevoked && lastState !== "invalid") {
                 lastState = "invalid";
-                onStop &&
-                    onStop({
-                        valid: false,
-                        status: "error",
-                        message: err.message,
-                    });
+                log("ERROR", "License revoked", data);
+                onRevoke && onRevoke(data);
+                return;
             }
+
+            // ✅ VALID OR UNKNOWN → KEEP RUNNING
+            lastState = data.valid === true ? "valid" : "unknown";
+        } catch (err) {
+            // ❗ Errors NEVER stop the app (e.g. database down, network issue)
+            log("WARN", "License check failed — keeping app running", {
+                error: err.message,
+            });
         }
     }
 
     await validateOnce();
 
-    intervalId = setInterval(validateOnce, intervalSeconds * 1000);
+    // ❌ If it was revoked in the first check, don't start the interval
+    if (lastState === "invalid") return;
 
-    log("INFO", "License daemon started", { intervalSeconds });
+    intervalId = setInterval(validateOnce, DEFAULT_INTERVAL * 1000);
+
+    log("INFO", "License daemon started", {
+        intervalSeconds: DEFAULT_INTERVAL,
+    });
 }
 
+/* ===================================================== */
+/* STOP DAEMON                                           */
+/* ===================================================== */
 export function stopLicenseDaemon() {
     if (intervalId) {
         clearInterval(intervalId);
         intervalId = null;
-        lastState = "unknown";
-        log("INFO", "License daemon stopped");
     }
+    // We don't reset lastState to unknown here if we are shutting down
+    log("INFO", "License daemon stopped");
 }
 
-export async function protectNodeApp({
-    app,
-    port,
-    productName,
-    key,
-    apiUrl,
-    intervalSeconds = 86400,
-}) {
+/* ===================================================== */
+/* EXPRESS APP PROTECTION                                */
+/* ===================================================== */
+export async function protectNodeApp({ app, port, productName, key, apiUrl }) {
     if (!app) throw new Error("Express app instance is required");
     if (!port) throw new Error("port is required");
 
-    let server = null;
-
+    // ✅ Activation = permission to start
     await activateLicense({ productName, key, apiUrl });
 
+    // ✅ ALWAYS START SERVER
+    const server = app.listen(port, () => {
+        log("INFO", `Licensed app running at http://localhost:${port}`);
+    });
+
+    // 🔁 Background revocation check
     await startLicenseDaemon({
         productName,
         key,
         apiUrl,
-        intervalSeconds,
 
-        onStart: () => {
-            if (!server) {
-                server = app.listen(port, () => {
-                    console.log(`Licensed app running at http://localhost:${port}`);
-                });
-            }
-        },
+        onRevoke: () => {
+            log("ERROR", "License revoked — shutting down app");
+            stopLicenseDaemon();
 
-        onStop: (data) => {
-            console.error("License invalid → shutting down app", data);
-
-            if (server) {
-                server.close(() => process.exit(1));
-            } else {
+            // 🔒 Force exit after 1s if server.close() hangs
+            const forceExit = setTimeout(() => {
+                log("WARN", "Forcing process exit...");
                 process.exit(1);
-            }
+            }, 1000);
+
+            server.close(() => {
+                clearTimeout(forceExit);
+                log("INFO", "Server closed gracefully. Exiting...");
+                process.exit(1);
+            });
         },
     });
 }
