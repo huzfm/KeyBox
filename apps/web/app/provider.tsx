@@ -6,18 +6,13 @@ import { useState } from "react";
 import { Toaster } from "sonner";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
+       const [queryClient] = useState(() => new QueryClient());
 
-  const [queryClient] = useState(() => new QueryClient());
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      {children}
-      <Toaster 
-        position="top-right" 
-        theme="dark"
-        
-      />
-      <ReactQueryDevtools initialIsOpen={false} />
-    </QueryClientProvider>
-  );
+       return (
+              <QueryClientProvider client={queryClient}>
+                     {children}
+                     <Toaster position="top-right" theme="dark" />
+                     <ReactQueryDevtools initialIsOpen={false} />
+              </QueryClientProvider>
+       );
 }
