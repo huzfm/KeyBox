@@ -1,15 +1,15 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "outDir": "dist",
-    "rootDir": "src",
-    "strict": true,
-    "esModuleInterop": true,
-    "isolatedModules": true,
-    "allowImportingTsExtensions": true,
-    "noEmit": true
-  },
-  "include": ["src", "api"]
+        "compilerOptions": {
+                "target": "ES2022",
+                "module": "NodeNext",
+                "moduleResolution": "NodeNext",
+                "outDir": "dist",
+                "rootDir": "src",
+                "strict": true,
+                "esModuleInterop": true,
+                "isolatedModules": true,
+                "allowImportingTsExtensions": true,
+                "noEmit": true
+        },
+        "include": ["src", "api"]
 }
