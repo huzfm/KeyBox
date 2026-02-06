@@ -17,6 +17,8 @@ export const validateLicense = async (req: Request, res: Response) => {
                 const cached = await getCachedLicense(key)
                 if (cached) {
                         console.log("REDIS HIT for license:", key)
+
+                        // 1. If already marked as non-active in cache, return immediately
                         if (cached.status !== Status.ACTIVE) {
                                 return res.json({
                                         valid: false,
@@ -26,10 +28,28 @@ export const validateLicense = async (req: Request, res: Response) => {
                                 })
                         }
 
+                        // 2. If marked as ACTIVE but date has passed, state is CHANGING to EXPIRED
                         if (
                                 cached.expiresAt &&
                                 new Date() > new Date(cached.expiresAt)
                         ) {
+                                console.log(
+                                        "STATE CHANGE DETECTED (Expired): Updating MongoDB",
+                                )
+                                const license = await License.findOneAndUpdate(
+                                        { key },
+                                        { status: Status.EXPIRED },
+                                        { new: true },
+                                )
+
+                                if (license) {
+                                        await setCachedLicense(key, {
+                                                status: Status.EXPIRED,
+                                                expiresAt: license.expiresAt,
+                                                message: "License has expired",
+                                        })
+                                }
+
                                 return res.json({
                                         valid: false,
                                         status: "expired",
@@ -38,6 +58,7 @@ export const validateLicense = async (req: Request, res: Response) => {
                                 })
                         }
 
+                        // 3. Otherwise, it's ACTIVE and still valid
                         return res.json({
                                 valid: true,
                                 status: "active",
@@ -71,6 +92,11 @@ export const validateLicense = async (req: Request, res: Response) => {
                 }
 
                 if (license.status === Status.PENDING) {
+                        await setCachedLicense(key, {
+                                status: Status.PENDING,
+                                message: "License has not been activated yet",
+                        })
+
                         return res.json({
                                 valid: false,
                                 status: "pending",
@@ -79,6 +105,12 @@ export const validateLicense = async (req: Request, res: Response) => {
                 }
 
                 if (license.status === Status.EXPIRED) {
+                        await setCachedLicense(key, {
+                                status: Status.EXPIRED,
+                                message: "License has expired",
+                                expiresAt: license.expiresAt,
+                        })
+
                         return res.json({
                                 valid: false,
                                 status: "expired",

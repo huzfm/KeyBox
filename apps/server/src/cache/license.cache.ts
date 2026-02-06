@@ -1,8 +1,7 @@
 import { Status } from "../models/License"
 import redis from "../lib/redis"
-import { log } from "console"
 
-const TTL_SECONDS = 300
+const TTL_SECONDS = 604800 // 1 week
 
 export interface CachedLicense {
         status: Status
@@ -13,7 +12,6 @@ export interface CachedLicense {
 
 const getCachedLicense = async (key: string): Promise<CachedLicense | null> => {
         const data = await redis.get(`license:${key}`)
-        console.log(data)
         return data ? JSON.parse(data) : null
 }
 
