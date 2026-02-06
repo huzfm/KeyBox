@@ -3,66 +3,71 @@ import { Github, Twitter, KeyRound } from "lucide-react";
 import { cookies } from "next/headers";
 
 export default async function HomeNavbar() {
-  const cookieStore = await cookies();
-  const isLoggedIn = cookieStore.get("jwt");
+       const cookieStore = await cookies();
+       const isLoggedIn = cookieStore.get("jwt");
 
-  return (
-    <header className="sticky top-0 z-50">
-      <div
-        className="
+       return (
+              <header className="sticky top-0 z-50">
+                     <div
+                            className="
           max-w-7xl mx-auto
           flex items-center justify-between
           px-4 py-3         
           sm:px-8 sm:py-4
           lg:px-60 lg:py-6    
         "
-      >
-        {/* Logo Section */}
-        <div className="flex items-center gap-2 ring-1 ring-white/20 bg-black rounded-2xl px-2 py-2 text-white shadow-md shadow-blue-500/20 hover:shadow-blue-500/40 transition-all duration-300">
-          <div className="w-8 h-8 flex items-center justify-center shrink-0 ">
-            <KeyRound className="w-7 h-7 text-white" />
-          </div>
-          <span className="text-lg sm:text-xl lg:text-2xl text-white font-bold truncate font-mono ">
-            KeyBox
-            <span className="text-xs font-semibold">
-             {' '}  v1.0.0
-              </span> 
-          </span>
-        </div>
+                     >
+                            {/* Logo Section */}
+                            <div className="flex items-center gap-2 ring-1 ring-white/20 bg-black rounded-2xl px-2 py-2 text-white shadow-md shadow-blue-500/20 hover:shadow-blue-500/40 transition-all duration-300">
+                                   <div className="w-8 h-8 flex items-center justify-center shrink-0 ">
+                                          <KeyRound className="w-7 h-7 text-white" />
+                                   </div>
+                                   <span className="text-lg sm:text-xl lg:text-2xl text-white font-bold truncate font-mono ">
+                                          KeyBox
+                                          <span className="text-xs font-semibold">
+                                                 {" "}
+                                                 v1.0.0
+                                          </span>
+                                   </span>
+                            </div>
 
-        {/* Navigation Section */}
-        <div className="flex items-center gap-3 sm:gap-5">
-          <a
-            href="https://github.com/huzfm/keybox"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-white transition"
-          >
-            <Github className="w-5 h-5" />
-          </a>
+                            {/* Navigation Section */}
+                            <div className="flex items-center gap-3 sm:gap-5">
+                                   <a
+                                          href="https://github.com/huzfm/keybox"
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-white transition"
+                                   >
+                                          <Github className="w-5 h-5" />
+                                   </a>
 
-          <a
-            href="https://x.com/huzfm"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-white transition"
-          >
-            <Twitter className="w-5 h-5" />
-          </a>
+                                   <a
+                                          href="https://x.com/huzfm"
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-white transition"
+                                   >
+                                          <Twitter className="w-5 h-5" />
+                                   </a>
 
-          <Link
-            href={isLoggedIn ? "/dashboard" : "/login"}
-            className="
+                                   <Link
+                                          href={
+                                                 isLoggedIn
+                                                        ? "/dashboard"
+                                                        : "/login"
+                                          }
+                                          className="
               px-3 py-1.5 sm:px-4 sm:py-2
               text-xs sm:text-sm
               font-medium text-white
               bg-black border rounded-lg transition
             "
-          >
-            {isLoggedIn ? "Dashboard" : "Login"}
-          </Link>
-        </div>
-      </div>
-    </header>
-  );
+                                   >
+                                          {isLoggedIn ? "Dashboard" : "Login"}
+                                   </Link>
+                            </div>
+                     </div>
+              </header>
+       );
 }

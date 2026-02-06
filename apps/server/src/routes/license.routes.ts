@@ -1,20 +1,26 @@
-import { Router } from "express";
+import { Router } from "express"
 import {
-  createLicense,
-  getUsersAndLicenses,
-  toggleLicense,
-  getUserWithLicenses,
-  test,
-} from "../controllers/license.controller";
-import { auth } from "../middleware/jwt";
-const router = Router();
+        createLicense,
+        getUsersAndLicenses,
+        toggleLicense,
+        getUserWithLicenses,
+        test,
+} from "../controllers/license.controller"
+import {
+        validateLicense,
+        activateLicense,
+} from "../controllers/redisLicense.controller"
+import { auth } from "../middleware/jwt"
+const router = Router()
 
-router.post("/create", auth, createLicense);
-router.patch("/revoke/:key", toggleLicense);
-router.get("/user-licenses", getUsersAndLicenses);
+router.post("/", validateLicense)
+router.post("/activate", activateLicense)
+router.post("/create", auth, createLicense)
+router.patch("/revoke/:key", toggleLicense)
+router.get("/user-licenses", getUsersAndLicenses)
 
-router.get("/me", auth, getUserWithLicenses);
+router.get("/me", auth, getUserWithLicenses)
 
-router.get("/user/:id", auth, getUserWithLicenses);
-router.get("/user-license", auth, test);
-export default router;
+router.get("/user/:id", auth, getUserWithLicenses)
+router.get("/user-license", auth, test)
+export default router

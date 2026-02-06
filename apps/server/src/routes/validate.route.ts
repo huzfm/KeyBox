@@ -1,12 +1,12 @@
-import { Router } from "express";
+import { Router } from "express"
 import {
-  validateLicense,
-  activateLicense,
-} from "../controllers/validate.controller";
+        validateLicense,
+        activateLicense,
+} from "../controllers/redisLicense.controller"
 
-const router = Router();
+const router = Router()
 
-router.post("/", validateLicense);
-router.post("/activate", activateLicense);
+router.post("/", validateLicense)
+router.post("/activate", activateLicense)
 
-export default router;
+export default router

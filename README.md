@@ -1,4 +1,4 @@
-#  KeyBox
+# KeyBox
 
 A license key manager that generates, validates, and revokes access to your software
 
@@ -7,12 +7,13 @@ This Turborepo contains:
 - **Backend API** (Node.js)
 - **Frontend Dashboard** (Next.js)
 - **SDKs**
-  - Node.js SDK
-  - Python FastAPI SDK
-  - Dotnet SDK
+     - Node.js SDK
+     - Python FastAPI SDK
+     - Dotnet SDK
+
 ---
 
-##  Repository Structure
+## Repository Structure
 
 ```
 KeyBox/
@@ -20,13 +21,13 @@ KeyBox/
 │   ├── server/                 # Backend API (Node.js)
 │   └── web/                    # Frontend dashboard (Next.js)
 │   └── sdk/
-│       ├── node-sdk/           # Node.js SDK        
+│       ├── node-sdk/           # Node.js SDK
 │       └── python-sdk/         # Python FastAPI SDK
 │       └── dotnet-sdk/         # Dotnet SDK
 ├── packages/
 │       ├── eslint-config/
 │       ├── typescript-config/
-│       ├── ui/   
+│       ├── ui/
 ├── .github/
 ├── .vscode/
 ├── package.json
@@ -63,7 +64,7 @@ pnpm turbo dev
 
 ---
 
-##  Backend – `apps/server`
+## Backend – `apps/server`
 
 The server handles:
 
@@ -80,7 +81,7 @@ pnpm --filter server dev
 
 ---
 
-##  Frontend – `apps/web`
+## Frontend – `apps/web`
 
 The dashboard lets users:
 
@@ -94,9 +95,6 @@ Run only frontend:
 pnpm --filter web dev
 ```
 
+## Contributing
 
-
-##  Contributing
-
-Pull requests and ideas are welcome.  
-
+Pull requests and ideas are welcome.

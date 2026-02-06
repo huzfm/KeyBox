@@ -20,16 +20,16 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.get("/", (req, res) => {
-  res.send("KeyBox app running");
+       res.send("KeyBox app running");
 });
 
 // Run the app with protection
 await protectNodeApp({
-  app,
-  port: PORT,
-  productName: "MyNodeApp",
-  key: process.env.KEYBOX_LICENSE_KEY,
-  intervalSeconds: 86400, // Validate license every 24 hours
+       app,
+       port: PORT,
+       productName: "MyNodeApp",
+       key: process.env.KEYBOX_LICENSE_KEY,
+       intervalSeconds: 86400, // Validate license every 24 hours
 });
 ```
 
