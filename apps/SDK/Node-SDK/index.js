@@ -1,5 +1,3 @@
-
-
 let intervalId = null;
 let lastState = "unknown";
 
