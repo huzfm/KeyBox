@@ -155,9 +155,9 @@ export const validateLicense = async (req: Request, res: Response) => {
                 })
         } catch (error) {
                 return res.status(500).json({
-                        valid: false,
-                        status: "error",
-                        message: "Validation failed",
+                        valid: null,
+                        status: "server_error",
+                        message: "Internal validation error",
                         error: (error as Error).message,
                 })
         }
