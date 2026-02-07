@@ -9,14 +9,10 @@ function log(level, message, meta = {}) {
     );
 }
 
-/* ===================================================== */
-/* ACTIVATE LICENSE                                      */
-/* ===================================================== */
 export async function activateLicense({
     productName,
     key,
-    // apiUrl = "https://api-keybox.vercel.app",
-    apiUrl = "http://localhost:5000",
+    apiUrl = "https://api-keybox.vercel.app",
     endpoint = "/validate/activate",
 }) {
     if (!productName || !key) {
@@ -46,16 +42,15 @@ export async function activateLicense({
     return data;
 }
 
-const DEFAULT_INTERVAL = 5; // 5 seconds (TEMPORARY FOR TESTING)
+const DEFAULT_INTERVAL = 900; //15 min
 
-/* ===================================================== */
-/* LICENSE DAEMON                                        */
-/* ===================================================== */
+
+// LICENSE DAEMON                                       
+
 export async function startLicenseDaemon({
     productName,
     key,
-    // apiUrl = "https://api-keybox.vercel.app",
-    apiUrl = "http://localhost:5000",
+    apiUrl = "https://api-keybox.vercel.app",
     endpoint = "/validate",
     onRevoke,
 }) {
@@ -79,8 +74,6 @@ export async function startLicenseDaemon({
             } catch {
                 throw new Error("Non-JSON response");
             }
-
-            // ❌ ONLY STOP IF EXPLICITLY INVALID (and not a server error)
             const isRevoked = data.valid === false && data.status !== "error" && data.status !== "server_error";
 
             if (isRevoked && lastState !== "invalid") {
@@ -90,10 +83,10 @@ export async function startLicenseDaemon({
                 return;
             }
 
-            // ✅ VALID OR UNKNOWN → KEEP RUNNING
+
             lastState = data.valid === true ? "valid" : "unknown";
         } catch (err) {
-            // ❗ Errors NEVER stop the app (e.g. database down, network issue)
+
             log("WARN", "License check failed — keeping app running", {
                 error: err.message,
             });
@@ -102,7 +95,7 @@ export async function startLicenseDaemon({
 
     await validateOnce();
 
-    // ❌ If it was revoked in the first check, don't start the interval
+
     if (lastState === "invalid") return;
 
     intervalId = setInterval(validateOnce, DEFAULT_INTERVAL * 1000);
@@ -112,34 +105,30 @@ export async function startLicenseDaemon({
     });
 }
 
-/* ===================================================== */
 /* STOP DAEMON                                           */
-/* ===================================================== */
+
 export function stopLicenseDaemon() {
     if (intervalId) {
         clearInterval(intervalId);
         intervalId = null;
     }
-    // We don't reset lastState to unknown here if we are shutting down
     log("INFO", "License daemon stopped");
 }
 
-/* ===================================================== */
-/* EXPRESS APP PROTECTION                                */
-/* ===================================================== */
+// main function for SDK usage
 export async function protectNodeApp({ app, port, productName, key, apiUrl }) {
     if (!app) throw new Error("Express app instance is required");
     if (!port) throw new Error("port is required");
 
-    // ✅ Activation = permission to start
+    //  Activation = permission to start
     await activateLicense({ productName, key, apiUrl });
 
-    // ✅ ALWAYS START SERVER
+    // ALWAYS START SERVER
     const server = app.listen(port, () => {
         log("INFO", `Licensed app running at http://localhost:${port}`);
     });
 
-    // 🔁 Background revocation check
+
     await startLicenseDaemon({
         productName,
         key,
@@ -149,7 +138,7 @@ export async function protectNodeApp({ app, port, productName, key, apiUrl }) {
             log("ERROR", "License revoked — shutting down app");
             stopLicenseDaemon();
 
-            // 🔒 Force exit after 1s if server.close() hangs
+
             const forceExit = setTimeout(() => {
                 log("WARN", "Forcing process exit...");
                 process.exit(1);
