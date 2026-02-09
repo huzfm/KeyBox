@@ -20,7 +20,6 @@ protect_fastapi_app(
     app=app,
     product_name="MyPythonApp",
     key="YOUR_LICENSE_KEY",
-    interval_seconds=86400, # Validation check once per day
 )
 
 @app.get("/")
@@ -30,6 +29,6 @@ def read_root():
 
 ## Features
 
-- **Automated Validation**: Set background license checks with configurable intervals.
+- **Automated Validation**: Automatic background license checks every 15 minutes.
 - **Easy Integration**: Built-in support for FastAPI.
 - **Secure**: Cryptographically secure validation.

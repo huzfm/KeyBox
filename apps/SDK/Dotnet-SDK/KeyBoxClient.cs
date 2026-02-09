@@ -17,6 +17,9 @@ public static class KeyboxClient
     private static string _lastState = "unknown";
     private static bool _running = false;
 
+    // Fixed validation interval (15 minutes)
+    private const int VALIDATION_INTERVAL_SECONDS = 300;
+
     // ---------------- LOG ----------------
     private static void Log(string level, string message, object? meta = null)
     {
@@ -73,7 +76,6 @@ public static class KeyboxClient
         string key,
         string apiUrl = "https://api-keybox.vercel.app",
         string endpoint = "/validate",
-        int intervalSeconds = 86400,
         Func<LicenseResponse, Task>? onStart = null,
         Func<LicenseResponse, Task>? onStop = null)
     {
@@ -150,10 +152,10 @@ public static class KeyboxClient
             catch { }
         },
         null,
-        TimeSpan.FromSeconds(intervalSeconds),
-        TimeSpan.FromSeconds(intervalSeconds));
+        TimeSpan.FromSeconds(VALIDATION_INTERVAL_SECONDS),
+        TimeSpan.FromSeconds(VALIDATION_INTERVAL_SECONDS));
 
-        Log("INFO", "License daemon started", new { intervalSeconds });
+        Log("INFO", "License daemon started", new { intervalSeconds = VALIDATION_INTERVAL_SECONDS });
     }
 
     // ---------------- STOP ----------------
@@ -171,8 +173,7 @@ public static class KeyboxClient
         this WebApplication app,
         string productName,
         string key,
-        string apiUrl = "https://api-keybox.vercel.app",
-        int intervalSeconds = 86400)
+        string apiUrl = "https://api-keybox.vercel.app")
     {
         try
         {
@@ -190,7 +191,6 @@ public static class KeyboxClient
             key,
             apiUrl,
             endpoint: "/validate",
-            intervalSeconds: intervalSeconds,
             onStart: (data) => Task.CompletedTask,
             onStop: async (data) =>
             {

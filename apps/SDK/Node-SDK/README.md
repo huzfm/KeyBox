@@ -13,28 +13,27 @@ npm install keybox-sdk
 Integrate license protection into your Express application effortlessly:
 
 ```javascript
-import express from "express";
-import { protectNodeApp } from "keybox-sdk";
+import express from "express"
+import { protectNodeApp } from "keybox-sdk"
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+const app = express()
+const PORT = process.env.PORT || 3000
 
 app.get("/", (req, res) => {
-       res.send("KeyBox app running");
-});
+        res.send("KeyBox app running")
+})
 
 // Run the app with protection
 await protectNodeApp({
-       app,
-       port: PORT,
-       productName: "MyNodeApp",
-       key: process.env.KEYBOX_LICENSE_KEY,
-       intervalSeconds: 86400, // Validate license every 24 hours
-});
+        app,
+        port: PORT,
+        productName: "MyNodeApp",
+        key: process.env.KEYBOX_LICENSE_KEY,
+})
 ```
 
 ## Features
 
-- **Automated Validation**: Automatic background checks at configurable intervals.
+- **Automated Validation**: Automatic background checks every 15 minutes.
 - **Easy Integration**: Built-in support for Express server lifecycle.
 - **Safe Lifecycle**: Automatically stops the server and exits the process if the license becomes invalid.

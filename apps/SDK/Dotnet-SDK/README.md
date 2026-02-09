@@ -25,13 +25,12 @@ app.MapGet("/", () => "KeyBox app running");
 // Run the app with protection
 await app.RunProtectedAsync(
     productName: "MyDotnetApp",
-    key: "YOUR_LICENSE_KEY",
-    intervalSeconds: 86400 // Validate license every 25hour
+    key: "YOUR_LICENSE_KEY"
 );
 ```
 
 ## Features
 
 - **Fluent Integration**: Seamlessly wraps `app.Run()` with `RunProtectedAsync`.
-- **Background Validation**: Automatic background checks at configurable intervals.
+- **Background Validation**: Automatic background checks every 15 minutes.
 - **ASP.NET Core Built-in**: Designed to work naturally with the .NET 8.0+ web stack.
