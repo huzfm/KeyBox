@@ -1,3 +1,5 @@
+import fetch from "node-fetch";
+
 let intervalId = null;
 let lastState = "unknown";
 
@@ -5,9 +7,11 @@ function log(level, message, meta = {}) {
     const time = new Date().toISOString();
     console.log(
         `[${time}] [KEYBOX] [${level}] ${message}`,
-        Object.keys(meta).length ? meta : ""
+        meta && Object.keys(meta).length ? JSON.stringify(meta) : ""
     );
 }
+
+/* ---------------- ACTIVATE LICENSE ---------------- */
 
 export async function activateLicense({
     productName,
@@ -27,12 +31,9 @@ export async function activateLicense({
         body: JSON.stringify({ key, productName }),
     });
 
-    let data;
-    try {
-        data = await res.json();
-    } catch {
+    const data = await res.json().catch(() => {
         throw new Error("License server did not return JSON");
-    }
+    });
 
     if (!res.ok || data?.success === false) {
         throw new Error(data?.message || "License activation failed");
@@ -42,10 +43,9 @@ export async function activateLicense({
     return data;
 }
 
-const DEFAULT_INTERVAL = 900; //15 min
+/* ---------------- LICENSE DAEMON ---------------- */
 
-
-// LICENSE DAEMON                                       
+const DEFAULT_INTERVAL = 300; // 15 minutes
 
 export async function startLicenseDaemon({
     productName,
@@ -68,25 +68,32 @@ export async function startLicenseDaemon({
                 body: JSON.stringify({ key, productName }),
             });
 
-            let data;
-            try {
-                data = await res.json();
-            } catch {
-                throw new Error("Non-JSON response");
-            }
-            const isRevoked = data.valid === false && data.status !== "error" && data.status !== "server_error";
+            const data = await res.json().catch(() => {
+                throw new Error("Non-JSON response from license server");
+            });
 
-            if (isRevoked && lastState !== "invalid") {
+            const statusLower = (data.status || "unknown").toLowerCase();
+            const terminalStatuses = ["revoked", "expired", "invalid"];
+
+            const isTerminal =
+                data.valid === false && terminalStatuses.includes(statusLower);
+
+            if (isTerminal && lastState !== "invalid") {
                 lastState = "invalid";
-                log("ERROR", "License revoked", data);
-                onRevoke && onRevoke(data);
+                log("ERROR", `License ${statusLower.toUpperCase()} — shutting down`, data);
+                onRevoke?.(data);
                 return;
             }
 
-
-            lastState = data.valid === true ? "valid" : "unknown";
+            if (data.valid === true) {
+                lastState = "valid";
+            } else if (statusLower === "server_error" || statusLower === "error") {
+                log("WARN", "Server error — keeping app running");
+                lastState = "unknown";
+            } else {
+                lastState = "unknown";
+            }
         } catch (err) {
-
             log("WARN", "License check failed — keeping app running", {
                 error: err.message,
             });
@@ -94,7 +101,6 @@ export async function startLicenseDaemon({
     }
 
     await validateOnce();
-
 
     if (lastState === "invalid") return;
 
@@ -105,7 +111,7 @@ export async function startLicenseDaemon({
     });
 }
 
-/* STOP DAEMON                                           */
+/* ---------------- STOP DAEMON ---------------- */
 
 export function stopLicenseDaemon() {
     if (intervalId) {
@@ -115,29 +121,32 @@ export function stopLicenseDaemon() {
     log("INFO", "License daemon stopped");
 }
 
-// main function for SDK usage
-export async function protectNodeApp({ app, port, productName, key, apiUrl }) {
+/* ---------------- MAIN WRAPPER ---------------- */
+
+export async function protectNodeApp({
+    app,
+    port,
+    productName,
+    key,
+    apiUrl,
+}) {
     if (!app) throw new Error("Express app instance is required");
     if (!port) throw new Error("port is required");
 
-    //  Activation = permission to start
+    // Permission to start
     await activateLicense({ productName, key, apiUrl });
 
-    // ALWAYS START SERVER
     const server = app.listen(port, () => {
         log("INFO", `Licensed app running at http://localhost:${port}`);
     });
-
 
     await startLicenseDaemon({
         productName,
         key,
         apiUrl,
-
         onRevoke: () => {
             log("ERROR", "License revoked — shutting down app");
             stopLicenseDaemon();
-
 
             const forceExit = setTimeout(() => {
                 log("WARN", "Forcing process exit...");
@@ -146,7 +155,7 @@ export async function protectNodeApp({ app, port, productName, key, apiUrl }) {
 
             server.close(() => {
                 clearTimeout(forceExit);
-                log("INFO", "Server closed gracefully. Exiting...");
+                log("INFO", "Server closed gracefully");
                 process.exit(1);
             });
         },
