@@ -7,6 +7,9 @@ interval_thread = None
 stop_event = threading.Event()
 last_state = "unknown"
 
+# Fixed validation interval (15 minutes)
+VALIDATION_INTERVAL_SECONDS = 900
+
 
 # --------------------
 # Logger
@@ -65,7 +68,6 @@ def start_license_daemon(
     key: str,
     api_url: str = "https://api-keybox.vercel.app",
     endpoint: str = "/validate",
-    interval_seconds: int = 86400,
     on_start=None,
     on_stop=None,
 ):
@@ -121,14 +123,14 @@ def start_license_daemon(
 
     def loop():
         validate_once()
-        while not stop_event.wait(interval_seconds):
+        while not stop_event.wait(VALIDATION_INTERVAL_SECONDS):
             validate_once()
 
     stop_event.clear()
     interval_thread = threading.Thread(target=loop, daemon=True)
     interval_thread.start()
 
-    log("INFO", "License daemon started", {"interval_seconds": interval_seconds})
+    log("INFO", "License daemon started", {"interval_seconds": VALIDATION_INTERVAL_SECONDS})
 
 
 def stop_license_daemon():
@@ -148,7 +150,6 @@ def protect_fastapi_app(
     product_name: str,
     key: str,
     api_url: str = "https://api-keybox.vercel.app",
-    interval_seconds: int = 86400,
 ):
     from fastapi import FastAPI
 
@@ -178,7 +179,6 @@ def protect_fastapi_app(
             product_name=product_name,
             key=key,
             api_url=api_url,
-            interval_seconds=interval_seconds,
             on_start=lambda _: log("INFO", "App unlocked"),
             on_stop=on_stop,
         )
