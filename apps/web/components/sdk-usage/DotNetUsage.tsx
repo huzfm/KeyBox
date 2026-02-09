@@ -27,7 +27,7 @@ await app.RunProtectedAsync(
                                         Installation
                                 </h2>
                                 <CodeBlock
-                                        code="dotnet add package KeyboxSdk --version 1.0.0"
+                                        code="dotnet add package KeyboxSdk --version 1.0.2"
                                         language="bash"
                                         title="Install KeyBox SDK"
                                 />
