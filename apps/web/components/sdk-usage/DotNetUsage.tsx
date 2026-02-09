@@ -1,9 +1,9 @@
-"use client";
+"use client"
 
-import CodeBlock from "../ui/CodeBlock";
+import CodeBlock from "../ui/CodeBlock"
 
 export default function DotNetUsage() {
-       const dotnetCode = `using KeyboxSdk;
+        const dotnetCode = `using KeyboxSdk;
 
 DotNetEnv.Env.Load();
 
@@ -15,35 +15,35 @@ app.UseHttpsRedirection();
 app.MapGet("/", () => "Hello World!");
 
 await app.RunProtectedAsync(
-    productName: "MyNodeApp",
-    key: Environment.GetEnvironmentVariable("KEYBOX_LICENSE_KEY") ?? throw new InvalidOperationException("KEYBOX_LICENSE_KEY is missing"),
-    intervalSeconds: 86400, // once in 24hours);`;
+    productName: "KeyBox Webapp",
+    key: Environment.GetEnvironmentVariable("KEYBOX_LICENSE_KEY"),
+    );`
 
-       return (
-              <>
-                     {/* Installation */}
-                     <div>
-                            <h2 className="text-2xl font-bold text-white mb-4">
-                                   Installation
-                            </h2>
-                            <CodeBlock
-                                   code="dotnet add package KeyboxSdk --version 1.0.0"
-                                   language="bash"
-                                   title="Install KeyBox SDK"
-                            />
-                     </div>
+        return (
+                <>
+                        {/* Installation */}
+                        <div>
+                                <h2 className="text-2xl font-bold text-white mb-4">
+                                        Installation
+                                </h2>
+                                <CodeBlock
+                                        code="dotnet add package KeyboxSdk --version 1.0.0"
+                                        language="bash"
+                                        title="Install KeyBox SDK"
+                                />
+                        </div>
 
-                     {/* Usage */}
-                     <div>
-                            <h2 className="text-2xl font-bold text-white mb-4">
-                                   Usage
-                            </h2>
-                            <CodeBlock
-                                   code={dotnetCode}
-                                   language="csharp"
-                                   title="Program.cs"
-                            />
-                     </div>
-              </>
-       );
+                        {/* Usage */}
+                        <div>
+                                <h2 className="text-2xl font-bold text-white mb-4">
+                                        Usage
+                                </h2>
+                                <CodeBlock
+                                        code={dotnetCode}
+                                        language="csharp"
+                                        title="Program.cs"
+                                />
+                        </div>
+                </>
+        )
 }
