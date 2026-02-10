@@ -18,7 +18,7 @@ async function expireLicenses() {
                 }).select("key")
 
                 if (!expiredLicenses.length) {
-                        console.log("✅ No licenses to expire")
+                        console.log("No licenses to expire")
                         process.exit(0)
                 }
 
