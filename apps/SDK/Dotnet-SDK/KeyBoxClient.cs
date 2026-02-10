@@ -18,7 +18,7 @@ public static class KeyboxClient
     private static bool _running = false;
 
     // Fixed validation interval (15 minutes)
-    private const int VALIDATION_INTERVAL_SECONDS = 300;
+    private const int VALIDATION_INTERVAL_SECONDS = 900;
 
     // ---------------- LOG ----------------
     private static void Log(string level, string message, object? meta = null)

@@ -45,7 +45,7 @@ export async function activateLicense({
 
 /* ---------------- LICENSE DAEMON ---------------- */
 
-const DEFAULT_INTERVAL = 300; // 15 minutes
+const DEFAULT_INTERVAL = 900; // 15 minutes
 
 export async function startLicenseDaemon({
     productName,
