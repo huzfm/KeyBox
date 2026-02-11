@@ -15,7 +15,7 @@ from pathlib import Path
 from fastapi import FastAPI
 
 
-from KeyBox_SDK import protect_fastapi_app
+from keybox_sdk import protect_fastapi_app
 
 app = FastAPI()
 
