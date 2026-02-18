@@ -15,10 +15,10 @@ export const validateLicense = async (req: Request, res: Response) => {
                         })
                 }
 
-                // 🔐 Generate current machine ID
+                //Generate current machine ID
                 const currentMachineId = machineIdSync(true)
 
-                // 🔹 1. Try Redis first
+                // 1. Try Redis first
                 const cached = await getCachedLicense(key)
                 if (cached) {
                         console.log("REDIS HIT for license:", key)
@@ -80,7 +80,7 @@ export const validateLicense = async (req: Request, res: Response) => {
                         })
                 }
 
-                // 🔹 2. MongoDB fallback
+                // 2. MongoDB fallback
                 console.log("MONGO HIT for license:", key)
 
                 const license = await License.findOne({ key })
@@ -93,7 +93,7 @@ export const validateLicense = async (req: Request, res: Response) => {
                         })
                 }
 
-                // 🚨 Machine mismatch check (authoritative)
+                // Machine mismatch check (authoritative)
                 if (
                         license.status === Status.ACTIVE &&
                         license.machineId !== currentMachineId
@@ -163,7 +163,7 @@ export const validateLicense = async (req: Request, res: Response) => {
                                 })
                         }
 
-                        // ✅ Cache INCLUDING machineId
+                        // Cache INCLUDING machineId
                         await setCachedLicense(key, {
                                 status: Status.ACTIVE,
                                 expiresAt: license.expiresAt,
@@ -205,7 +205,7 @@ export const activateLicense = async (req: Request, res: Response) => {
                         })
                 }
 
-                // 🔐 Generate stable machine ID (hashed)
+                //  Generate stable machine ID (hashed)
                 const machineId = machineIdSync(true)
 
                 const license = await License.findOne({ key })
@@ -231,7 +231,7 @@ export const activateLicense = async (req: Request, res: Response) => {
                         })
                 }
 
-                // 🚨 Already activated
+                // Already activated
                 if (license.status === Status.ACTIVE) {
                         if (license.machineId !== machineId) {
                                 return res.status(403).json({
@@ -248,7 +248,7 @@ export const activateLicense = async (req: Request, res: Response) => {
                         })
                 }
 
-                // 🟢 First-time activation
+                //  First-time activation
                 const issuedAt = new Date()
                 const expiresAt = new Date()
                 expiresAt.setMonth(expiresAt.getMonth() + license.duration)
@@ -256,7 +256,7 @@ export const activateLicense = async (req: Request, res: Response) => {
                 license.status = Status.ACTIVE
                 license.issuedAt = issuedAt
                 license.expiresAt = expiresAt
-                license.machineId = machineId // ✅ STORED IN DB
+                license.machineId = machineId
 
                 await license.save()
                 await invalidateCachedLicense(key)
