@@ -31,6 +31,7 @@
     "mongoose": "^7.8.8",
     "morgan": "^1.10.1",
     "node-cron": "^4.2.1",
+    "node-machine-id": "^1.1.12",
     "nodemon": "^3.1.11",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
