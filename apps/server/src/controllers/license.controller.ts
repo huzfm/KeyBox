@@ -74,7 +74,7 @@ export const toggleLicense = async (req: Request, res: Response) => {
 
                 await license.save()
 
-                // 🔥 Invalidate cache because state CHANGED
+                //  Invalidate cache because state CHANGED
                 await invalidateCachedLicense(key)
 
                 return res.json({
