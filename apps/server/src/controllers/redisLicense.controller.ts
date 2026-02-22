@@ -23,7 +23,7 @@ export const validateLicense = async (req: Request, res: Response) => {
                 if (cached) {
                         console.log("REDIS HIT for license:", key)
 
-                        // 🚨 Machine mismatch
+                        //  Machine mismatch
                         if (
                                 cached.status === Status.ACTIVE &&
                                 cached.machineId &&
