@@ -1,15 +1,16 @@
-import { Router } from "express";
+import { Router } from "express"
 import {
-       signup,
-       login,
-       getAllUsers,
-       editUser,
-} from "../controllers/auth.controller";
+        signup,
+        login,
+        getAllUsers,
+        editUser,
+} from "../controllers/auth.controller"
+import { auth } from "../middleware/jwt"
 
-const router = Router();
-router.post("/signup", signup);
-router.post("/login", login);
-router.get("/users", getAllUsers);
-router.patch("/users/:id", editUser);
+const router = Router()
+router.post("/signup", signup)
+router.post("/login", login)
+router.get("/users", auth, getAllUsers)
+router.patch("/users/:id", auth, editUser)
 
-export default router;
+export default router

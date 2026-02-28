@@ -11,7 +11,6 @@ function log(level, message, meta = {}) {
     );
 }
 
-/* ---------------- ACTIVATE LICENSE ---------------- */
 
 export async function activateLicense({
     productName,
@@ -43,7 +42,6 @@ export async function activateLicense({
     return data;
 }
 
-/* ---------------- LICENSE DAEMON ---------------- */
 
 const DEFAULT_INTERVAL = 900; // 15 minutes
 
@@ -111,7 +109,6 @@ export async function startLicenseDaemon({
     });
 }
 
-/* ---------------- STOP DAEMON ---------------- */
 
 export function stopLicenseDaemon() {
     if (intervalId) {
@@ -121,7 +118,6 @@ export function stopLicenseDaemon() {
     log("INFO", "License daemon stopped");
 }
 
-/* ---------------- MAIN WRAPPER ---------------- */
 
 export async function protectNodeApp({
     app,

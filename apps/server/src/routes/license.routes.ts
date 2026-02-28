@@ -16,8 +16,8 @@ const router = Router()
 router.post("/", validateLicense)
 router.post("/activate", activateLicense)
 router.post("/create", auth, createLicense)
-router.patch("/revoke/:key", toggleLicense)
-router.get("/user-licenses", getUsersAndLicenses)
+router.patch("/revoke/:key", auth, toggleLicense)
+router.get("/user-licenses", auth, getUsersAndLicenses)
 
 router.get("/me", auth, getUserWithLicenses)
 
