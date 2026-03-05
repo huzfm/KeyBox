@@ -68,6 +68,7 @@ function DashboardContent() {
                 } catch {
                         return { name: null, email: null }
                 }
+                // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [tokenProcessed])
 
         useEffect(() => {
@@ -92,12 +93,14 @@ function DashboardContent() {
         }
 
         const isUnauthorized =
-                isError && (error as any)?.response?.status === 401
+                isError &&
+                (error as unknown as { response: { status: number } })?.response
+                        ?.status === 401
 
         if (!isAuthorized || isUnauthorized) {
                 return (
                         <div className="min-h-screen bg-background relative flex items-center justify-center">
-                                <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:35px_35px]" />
+                                <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-size:[35px_35px]" />
 
                                 <div className="relative z-10 text-center px-4">
                                         <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
@@ -133,7 +136,7 @@ function DashboardContent() {
 
         return (
                 <div className="min-h-screen bg-background relative">
-                        <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:35px_35px]" />
+                        <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-size:[35px_35px]" />
 
                         <div className="bg-card/50 top-0 z-10">
                                 <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
@@ -156,7 +159,7 @@ function DashboardContent() {
                                                 <div className="flex items-center gap-2 sm:gap-3">
                                                         {/* Docs / SDK buttons */}
                                                         <div className=" sm:flex items-center gap-2">
-                                                                <Link href="/docs">
+                                                                <Link href="/sdk-usage">
                                                                         <Button
                                                                                 size="sm"
                                                                                 className="border- border-white bg-white/70 text-black hover:bg-white/50"
