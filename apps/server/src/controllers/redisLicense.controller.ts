@@ -55,10 +55,12 @@ export const validateLicense = async (req: Request, res: Response) => {
                                         { new: true },
                                 )
 
+                                await invalidateCachedLicense(key)
+
                                 if (license) {
                                         await setCachedLicense(key, {
                                                 status: Status.EXPIRED,
-                                                expiresAt: license.expiresAt,
+                                                expiresAt: license.expiresAt.getTime(),
                                                 message: "License has expired",
                                                 machineId: license.machineId,
                                         })
@@ -96,6 +98,7 @@ export const validateLicense = async (req: Request, res: Response) => {
                 // Machine mismatch check (authoritative)
                 if (
                         license.status === Status.ACTIVE &&
+                        license.machineId &&
                         license.machineId !== currentMachineId
                 ) {
                         return res.json({
@@ -136,7 +139,7 @@ export const validateLicense = async (req: Request, res: Response) => {
                         await setCachedLicense(key, {
                                 status: Status.EXPIRED,
                                 message: "License has expired",
-                                expiresAt: license.expiresAt,
+                                expiresAt: license.expiresAt.getTime(),
                                 machineId: license.machineId,
                         })
 
@@ -144,7 +147,7 @@ export const validateLicense = async (req: Request, res: Response) => {
                                 valid: false,
                                 status: "expired",
                                 message: "License has expired",
-                                expiresAt: license.expiresAt,
+                                expiresAt: license.expiresAt.getTime(),
                         })
                 }
 
@@ -166,7 +169,7 @@ export const validateLicense = async (req: Request, res: Response) => {
                         // Cache INCLUDING machineId
                         await setCachedLicense(key, {
                                 status: Status.ACTIVE,
-                                expiresAt: license.expiresAt,
+                                expiresAt: license.expiresAt.getTime(),
                                 duration: `${license.duration} months`,
                                 machineId: license.machineId,
                         })
@@ -175,7 +178,7 @@ export const validateLicense = async (req: Request, res: Response) => {
                                 valid: true,
                                 status: "active",
                                 duration: `${license.duration} months`,
-                                expiresAt: license.expiresAt,
+                                expiresAt: license.expiresAt.getTime(),
                         })
                 }
 

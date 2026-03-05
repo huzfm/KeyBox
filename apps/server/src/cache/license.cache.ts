@@ -6,7 +6,7 @@ const TTL_SECONDS = 604800 // 1 week
 export interface CachedLicense {
         status: Status
         message?: string
-        expiresAt?: Date | string
+        expiresAt?: number
         duration?: string
         machineId?: string
 }
