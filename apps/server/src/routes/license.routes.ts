@@ -1,22 +1,21 @@
 import { Router } from "express"
 import {
-        createLicense,
-        getUsersAndLicenses,
-        toggleLicense,
-        getUserWithLicenses,
-        test,
+     createLicense,
+     getUsersAndLicenses,
+     toggleLicense,
+     getUserWithLicenses,
+     test,
 } from "../controllers/license.controller"
 import {
-        validateLicense,
-        activateLicense,
+     validateLicense,
+     activateLicense,
 } from "../controllers/redisLicense.controller"
 import { auth } from "../middleware/jwt"
 const router = Router()
 
 router.post("/", validateLicense)
-router.post("/activate", activateLicense)
 router.post("/create", auth, createLicense)
-router.patch("/revoke/:key", auth, toggleLicense)
+router.patch("/revoke/:key", toggleLicense)
 router.get("/user-licenses", auth, getUsersAndLicenses)
 
 router.get("/me", auth, getUserWithLicenses)
