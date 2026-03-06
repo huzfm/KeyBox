@@ -68,6 +68,7 @@ function DashboardContent() {
                 } catch {
                         return { name: null, email: null }
                 }
+                // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [tokenProcessed])
 
         useEffect(() => {
@@ -92,7 +93,9 @@ function DashboardContent() {
         }
 
         const isUnauthorized =
-                isError && (error as any)?.response?.status === 401
+                isError &&
+                (error as unknown as { response: { status: number } })?.response
+                        ?.status === 401
 
         if (!isAuthorized || isUnauthorized) {
                 return (
@@ -156,7 +159,7 @@ function DashboardContent() {
                                                 <div className="flex items-center gap-2 sm:gap-3">
                                                         {/* Docs / SDK buttons */}
                                                         <div className=" sm:flex items-center gap-2">
-                                                                <Link href="/docs">
+                                                                <Link href="/sdk-usage">
                                                                         <Button
                                                                                 size="sm"
                                                                                 className="border- border-white bg-white/70 text-black hover:bg-white/50"
