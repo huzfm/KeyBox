@@ -47,6 +47,13 @@ export const createProjectWithLicense = async (
                                 .json({ message: "Client not found" })
                 }
 
+                if (client.owner.toString() !== req.userId) {
+                        if (session) {
+                                await session.abortTransaction()
+                                session.endSession()
+                        }
+                        return res.status(403).json({ message: "Forbidden" })
+                }
                 const project = await Project.create(
                         [
                                 {
