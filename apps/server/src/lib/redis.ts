@@ -7,7 +7,7 @@ function createRedisClient(): RedisClientType {
                 username: "default",
                 password: process.env.REDIS_PASSWORD,
                 socket: {
-                        host: "redis-10357.c212.ap-south-1-1.ec2.cloud.redislabs.com",
+                        host: process.env.REDIS_CLIENT,
                         port: 10357,
                         connectTimeout: 10000,
                         reconnectStrategy: (retries) => {
