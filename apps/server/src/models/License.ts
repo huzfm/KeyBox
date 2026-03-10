@@ -19,7 +19,8 @@ export interface LicenseType {
         expiresAt: Date
         status: Status
         services: Services[]
-        machineId: string
+        machineId: string[]
+        maxMachines: number
         user: mongoose.Types.ObjectId
         client: mongoose.Types.ObjectId
         project: mongoose.Types.ObjectId
@@ -81,9 +82,13 @@ const licenseSchema = new Schema<LicenseType>({
                 required: true,
         },
         machineId: {
-                type: String,
-                default: null,
+                type: [String],
+                default: [],
                 index: true,
+        },
+        maxMachines: {
+                type: Number,
+                default: 2,
         },
 })
 

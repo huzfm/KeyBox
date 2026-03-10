@@ -15,19 +15,18 @@ export const validateLicense = async (req: Request, res: Response) => {
                         })
                 }
 
-                //Generate current machine ID
                 const currentMachineId = machineIdSync(true)
 
-                // 1. Try Redis first
+                // Redis cache check
                 const cached = await getCachedLicense(key)
-                if (cached) {
-                        console.log("REDIS HIT for license:", key)
 
-                        //  Machine mismatch
+                if (cached) {
+                        console.log("REDIS HIT:", key)
+
                         if (
                                 cached.status === Status.ACTIVE &&
                                 cached.machineId &&
-                                cached.machineId !== currentMachineId
+                                !cached.machineId.includes(currentMachineId)
                         ) {
                                 return res.json({
                                         valid: false,
@@ -82,8 +81,8 @@ export const validateLicense = async (req: Request, res: Response) => {
                         })
                 }
 
-                // 2. MongoDB fallback
-                console.log("MONGO HIT for license:", key)
+                // MongoDB fallback 
+                console.log("MONGO HIT:", key)
 
                 const license = await License.findOne({ key })
 
@@ -95,11 +94,10 @@ export const validateLicense = async (req: Request, res: Response) => {
                         })
                 }
 
-                // Machine mismatch check (authoritative)
                 if (
                         license.status === Status.ACTIVE &&
-                        license.machineId &&
-                        license.machineId !== currentMachineId
+                        license.machineId.length > 0 &&
+                        !license.machineId.includes(currentMachineId)
                 ) {
                         return res.json({
                                 valid: false,
@@ -166,7 +164,6 @@ export const validateLicense = async (req: Request, res: Response) => {
                                 })
                         }
 
-                        // Cache INCLUDING machineId
                         await setCachedLicense(key, {
                                 status: Status.ACTIVE,
                                 expiresAt: license.expiresAt.getTime(),
@@ -208,7 +205,6 @@ export const activateLicense = async (req: Request, res: Response) => {
                         })
                 }
 
-                //  Generate stable machine ID (hashed)
                 const machineId = machineIdSync(true)
 
                 const license = await License.findOne({ key })
@@ -234,15 +230,8 @@ export const activateLicense = async (req: Request, res: Response) => {
                         })
                 }
 
-                // Already activated
-                if (license.status === Status.ACTIVE) {
-                        if (license.machineId !== machineId) {
-                                return res.status(403).json({
-                                        success: false,
-                                        message: "License already activated on another machine",
-                                })
-                        }
-
+                //   Checks if machine is already registered
+                if (license.machineId.includes(machineId)) {
                         return res.json({
                                 success: true,
                                 message: "License already activated on this machine",
@@ -251,17 +240,28 @@ export const activateLicense = async (req: Request, res: Response) => {
                         })
                 }
 
-                //  First-time activation
+                // checks for machine limit check
+
+                if (license.machineId.length >= license.maxMachines) {
+                        return res.status(403).json({
+                                success: false,
+                                message: "Machine limit reached for this license",
+                        })
+                }
+
                 const issuedAt = new Date()
                 const expiresAt = new Date()
+
                 expiresAt.setMonth(expiresAt.getMonth() + license.duration)
 
                 license.status = Status.ACTIVE
                 license.issuedAt = issuedAt
                 license.expiresAt = expiresAt
-                license.machineId = machineId
+
+                license.machineId.push(machineId)
 
                 await license.save()
+
                 await invalidateCachedLicense(key)
 
                 return res.json({

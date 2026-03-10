@@ -8,7 +8,7 @@ export interface CachedLicense {
         message?: string
         expiresAt?: number
         duration?: string
-        machineId?: string
+        machineId?: string[]
 }
 
 const getCachedLicense = async (key: string): Promise<CachedLicense | null> => {
@@ -18,7 +18,7 @@ const getCachedLicense = async (key: string): Promise<CachedLicense | null> => {
                 return data ? JSON.parse(data) : null
         } catch (error) {
                 console.error("Redis getCachedLicense error:", error)
-                return null // Gracefully degrade - continue without cache
+                return null // Gracefully degrade continue without cache
         }
 }
 
@@ -30,7 +30,7 @@ const setCachedLicense = async (key: string, license: CachedLicense) => {
                 })
         } catch (error) {
                 console.error("Redis setCachedLicense error:", error)
-                // Gracefully degrade - continue without cache
+                // Gracefully degrade continue without cache
         }
 }
 
@@ -40,7 +40,7 @@ const invalidateCachedLicense = async (key: string) => {
                 await redis.del(`license:${key}`)
         } catch (error) {
                 console.error("Redis invalidateCachedLicense error:", error)
-                // Gracefully degrade - continue without cache
+                // Gracefully degrade continue without cache
         }
 }
 
