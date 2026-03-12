@@ -118,17 +118,3 @@ export const login = async (req: Request<LoginBody>, res: Response) => {
         }
 }
 
-export const getAllUsers = async (_req: Request, res: Response) => {
-        try {
-                const users = await User.find().select("-password_hash")
-                return res.json({
-                        users,
-                })
-        } catch (error) {
-                return res.status(500).json({
-                        message: "Failed to retrieve users",
-
-                        error: (error as Error).message,
-                })
-        }
-}

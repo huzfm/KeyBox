@@ -246,7 +246,7 @@ export const activateLicense = async (req: Request, res: Response) => {
 
                return res.json({
                     success: true,
-                    message: "License already activated on this machine",
+                    message: "License already activated",
                     activatedAt: license.issuedAt,
                     expiresAt: license.expiresAt,
                })

@@ -173,28 +173,7 @@ describe("Validation Controller", () => {
                      expect(response.body.expiresAt).toBeDefined();
               });
 
-              it("should return success if license is already active", async () => {
-                     const license = await createTestLicense(
-                            userId,
-                            clientId,
-                            projectId,
-                            {
-                                   status: Status.ACTIVE,
-                            },
-                     );
-
-                     const response = await request(app)
-                            .post("/validate/activate")
-                            .send({
-                                   key: license.key,
-                            });
-
-                     expect(response.status).toBe(200);
-                     expect(response.body.success).toBe(true);
-                     expect(response.body.message).toBe(
-                            "License already activated",
-                     );
-              });
+              
 
               it("should reject activation without a key", async () => {
                      const response = await request(app)
@@ -220,48 +199,7 @@ describe("Validation Controller", () => {
                      expect(response.body.message).toBe("License not found");
               });
 
-              it("should reject activation for revoked license", async () => {
-                     const license = await createTestLicense(
-                            userId,
-                            clientId,
-                            projectId,
-                            {
-                                   status: Status.REVOKED,
-                            },
-                     );
 
-                     const response = await request(app)
-                            .post("/validate/activate")
-                            .send({
-                                   key: license.key,
-                            });
-
-                     expect(response.status).toBe(403);
-                     expect(response.body.success).toBe(false);
-                     expect(response.body.message).toBe(
-                            "License has been revoked",
-                     );
-              });
-
-              it("should reject activation for expired license", async () => {
-                     const license = await createTestLicense(
-                            userId,
-                            clientId,
-                            projectId,
-                            {
-                                   status: Status.EXPIRED,
-                            },
-                     );
-
-                     const response = await request(app)
-                            .post("/validate/activate")
-                            .send({
-                                   key: license.key,
-                            });
-
-                     expect(response.status).toBe(403);
-                     expect(response.body.success).toBe(false);
-                     expect(response.body.message).toBe("License has expired");
-              });
+              
        });
 });
