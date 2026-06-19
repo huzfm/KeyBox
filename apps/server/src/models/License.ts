@@ -20,6 +20,7 @@ export interface LicenseType {
      status: Status
      services: Services[]
      machineId: string
+     instanceId: string
      user: mongoose.Types.ObjectId
      client: mongoose.Types.ObjectId
      project: mongoose.Types.ObjectId
@@ -81,6 +82,11 @@ const licenseSchema = new Schema<LicenseType>({
           required: true,
      },
      machineId: {
+          type: String,
+          default: null,
+          index: true,
+     },
+     instanceId: {
           type: String,
           default: null,
           index: true,

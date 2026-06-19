@@ -9,6 +9,7 @@ export interface CachedLicense {
         expiresAt?: number
         duration?: string
         machineId?: string
+        instanceId?: string
 }
 
 const getCachedLicense = async (key: string): Promise<CachedLicense | null> => {

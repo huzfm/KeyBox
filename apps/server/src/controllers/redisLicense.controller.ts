@@ -6,12 +6,19 @@ import { machineIdSync } from "node-machine-id"
 
 export const validateLicense = async (req: Request, res: Response) => {
      try {
-          const { key } = req.body
+          const { key, instanceId } = req.body
 
           if (!key) {
                return res.status(400).json({
                     valid: false,
                     message: "License key is required",
+               })
+          }
+
+          if (!instanceId) {
+               return res.status(400).json({
+                    valid: false,
+                    message: "Instance ID is required",
                })
           }
 
@@ -33,6 +40,19 @@ export const validateLicense = async (req: Request, res: Response) => {
                          valid: false,
                          status: "machine_mismatch",
                          message: "License is not valid for this machine",
+                    })
+               }
+
+               //  Instance mismatch (one license key = one (machineId, instanceId) pair)
+               if (
+                    cached.status === Status.ACTIVE &&
+                    cached.instanceId &&
+                    cached.instanceId !== instanceId
+               ) {
+                    return res.json({
+                         valid: false,
+                         status: "instance_mismatch",
+                         message: "License is not valid for this instance",
                     })
                }
 
@@ -63,6 +83,7 @@ export const validateLicense = async (req: Request, res: Response) => {
                               expiresAt: license.expiresAt.getTime(),
                               message: "License has expired",
                               machineId: license.machineId,
+                              instanceId: license.instanceId,
                          })
                     }
 
@@ -108,11 +129,25 @@ export const validateLicense = async (req: Request, res: Response) => {
                })
           }
 
+          // Instance mismatch check (authoritative)
+          if (
+               license.status === Status.ACTIVE &&
+               license.instanceId &&
+               license.instanceId !== instanceId
+          ) {
+               return res.json({
+                    valid: false,
+                    status: "instance_mismatch",
+                    message: "License is not valid for this instance",
+               })
+          }
+
           if (license.status === Status.REVOKED) {
                await setCachedLicense(key, {
                     status: Status.REVOKED,
                     message: "License revoked by developer",
                     machineId: license.machineId,
+                    instanceId: license.instanceId,
                })
 
                return res.json({
@@ -141,6 +176,7 @@ export const validateLicense = async (req: Request, res: Response) => {
                     message: "License has expired",
                     expiresAt: license.expiresAt.getTime(),
                     machineId: license.machineId,
+                    instanceId: license.instanceId,
                })
 
                return res.json({
@@ -166,12 +202,13 @@ export const validateLicense = async (req: Request, res: Response) => {
                     })
                }
 
-               // Cache INCLUDING machineId
+               // Cache INCLUDING machineId + instanceId
                await setCachedLicense(key, {
                     status: Status.ACTIVE,
                     expiresAt: license.expiresAt.getTime(),
                     duration: `${license.duration} months`,
                     machineId: license.machineId,
+                    instanceId: license.instanceId,
                })
 
                return res.json({
@@ -199,12 +236,19 @@ export const validateLicense = async (req: Request, res: Response) => {
 
 export const activateLicense = async (req: Request, res: Response) => {
      try {
-          const { key } = req.body
+          const { key, instanceId } = req.body
 
           if (!key) {
                return res.status(400).json({
                     success: false,
                     message: "License key is required",
+               })
+          }
+
+          if (!instanceId) {
+               return res.status(400).json({
+                    success: false,
+                    message: "Instance ID is required",
                })
           }
 
@@ -244,6 +288,13 @@ export const activateLicense = async (req: Request, res: Response) => {
                     })
                }
 
+               if (license.instanceId !== instanceId) {
+                    return res.status(403).json({
+                         success: false,
+                         message: "License already activated on another instance",
+                    })
+               }
+
                return res.json({
                     success: true,
                     message: "License already activated",
@@ -261,6 +312,7 @@ export const activateLicense = async (req: Request, res: Response) => {
           license.issuedAt = issuedAt
           license.expiresAt = expiresAt
           license.machineId = machineId
+          license.instanceId = instanceId
 
           await license.save()
           await invalidateCachedLicense(key)
@@ -269,6 +321,7 @@ export const activateLicense = async (req: Request, res: Response) => {
                success: true,
                message: "License activated successfully",
                machineId,
+               instanceId,
                activatedAt: issuedAt,
                expiresAt,
           })
