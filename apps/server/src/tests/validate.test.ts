@@ -1,6 +1,7 @@
 import request from "supertest";
 import app from "../app";
 import { Status } from "../models/License";
+import { machineIdSync } from "node-machine-id";
 import {
        createTestUser,
        createTestClient,
@@ -13,6 +14,8 @@ describe("Validation Controller", () => {
        let userId: string;
        let clientId: string;
        let projectId: string;
+
+       const INSTANCE_ID = "instance-aaa-111";
 
        beforeEach(async () => {
               const user = await createTestUser();
@@ -34,6 +37,7 @@ describe("Validation Controller", () => {
                                    status: Status.ACTIVE,
                                    productName: "Test Product",
                                    customer: "Test Customer",
+                                   instanceId: INSTANCE_ID,
                             },
                      );
 
@@ -41,6 +45,7 @@ describe("Validation Controller", () => {
                             .post("/validate")
                             .send({
                                    key: license.key,
+                                   instanceId: INSTANCE_ID,
                             });
 
                      expect(response.status).toBe(200);
@@ -53,7 +58,7 @@ describe("Validation Controller", () => {
               it("should reject validation without a key", async () => {
                      const response = await request(app)
                             .post("/validate")
-                            .send({});
+                            .send({ instanceId: INSTANCE_ID });
 
                      expect(response.status).toBe(400);
                      expect(response.body.valid).toBe(false);
@@ -62,11 +67,24 @@ describe("Validation Controller", () => {
                      );
               });
 
+              it("should reject validation without an instanceId", async () => {
+                     const response = await request(app)
+                            .post("/validate")
+                            .send({ key: "SOME-KEY" });
+
+                     expect(response.status).toBe(400);
+                     expect(response.body.valid).toBe(false);
+                     expect(response.body.message).toBe(
+                            "Instance ID is required",
+                     );
+              });
+
               it("should return invalid for non-existent key", async () => {
                      const response = await request(app)
                             .post("/validate")
                             .send({
                                    key: "NONEXISTENT-KEY",
+                                   instanceId: INSTANCE_ID,
                             });
 
                      expect(response.status).toBe(200);
@@ -82,6 +100,7 @@ describe("Validation Controller", () => {
                             projectId,
                             {
                                    status: Status.REVOKED,
+                                   instanceId: INSTANCE_ID,
                             },
                      );
 
@@ -89,6 +108,7 @@ describe("Validation Controller", () => {
                             .post("/validate")
                             .send({
                                    key: license.key,
+                                   instanceId: INSTANCE_ID,
                             });
 
                      expect(response.status).toBe(200);
@@ -106,6 +126,7 @@ describe("Validation Controller", () => {
                             projectId,
                             {
                                    status: Status.PENDING,
+                                   instanceId: INSTANCE_ID,
                             },
                      );
 
@@ -113,6 +134,7 @@ describe("Validation Controller", () => {
                             .post("/validate")
                             .send({
                                    key: license.key,
+                                   instanceId: INSTANCE_ID,
                             });
 
                      expect(response.status).toBe(200);
@@ -130,6 +152,7 @@ describe("Validation Controller", () => {
                             projectId,
                             {
                                    status: Status.EXPIRED,
+                                   instanceId: INSTANCE_ID,
                             },
                      );
 
@@ -137,6 +160,7 @@ describe("Validation Controller", () => {
                             .post("/validate")
                             .send({
                                    key: license.key,
+                                   instanceId: INSTANCE_ID,
                             });
 
                      expect(response.status).toBe(200);
@@ -144,6 +168,32 @@ describe("Validation Controller", () => {
                      expect(response.body.status).toBe("expired");
                      expect(response.body.message).toBe("License has expired");
                      expect(response.body.expiresAt).toBeDefined();
+              });
+
+              it("should return instance_mismatch when instanceId differs from the bound one", async () => {
+                     const license = await createTestLicense(
+                            userId,
+                            clientId,
+                            projectId,
+                            {
+                                   status: Status.ACTIVE,
+                                   instanceId: "instance-original",
+                            },
+                     );
+
+                     const response = await request(app)
+                            .post("/validate")
+                            .send({
+                                   key: license.key,
+                                   instanceId: "instance-different",
+                            });
+
+                     expect(response.status).toBe(200);
+                     expect(response.body.valid).toBe(false);
+                     expect(response.body.status).toBe("instance_mismatch");
+                     expect(response.body.message).toBe(
+                            "License is not valid for this instance",
+                     );
               });
        });
 
@@ -162,6 +212,7 @@ describe("Validation Controller", () => {
                             .post("/validate/activate")
                             .send({
                                    key: license.key,
+                                   instanceId: INSTANCE_ID,
                             });
 
                      expect(response.status).toBe(200);
@@ -169,16 +220,15 @@ describe("Validation Controller", () => {
                      expect(response.body.message).toBe(
                             "License activated successfully",
                      );
+                     expect(response.body.instanceId).toBe(INSTANCE_ID);
                      expect(response.body.activatedAt).toBeDefined();
                      expect(response.body.expiresAt).toBeDefined();
               });
 
-              
-
               it("should reject activation without a key", async () => {
                      const response = await request(app)
                             .post("/validate/activate")
-                            .send({});
+                            .send({ instanceId: INSTANCE_ID });
 
                      expect(response.status).toBe(400);
                      expect(response.body.success).toBe(false);
@@ -187,19 +237,48 @@ describe("Validation Controller", () => {
                      );
               });
 
-              it("should reject activation for non-existent license", async () => {
+              it("should reject activation without an instanceId", async () => {
+                     const response = await request(app)
+                            .post("/validate/activate")
+                            .send({ key: "SOME-KEY" });
+
+                     expect(response.status).toBe(400);
+                     expect(response.body.success).toBe(false);
+                     expect(response.body.message).toBe(
+                            "Instance ID is required",
+                     );
+              });
+
+              it("should reject re-activation on a different instance", async () => {
+                     // Pre-seed an active license bound to a specific instance.
+                     // We seed the same machineId the server's node-machine-id
+                     // will compute at activation time, so the controller's
+                     // machine-mismatch check passes and the instance check
+                     // is the one that fires.
+                     const runtimeMachineId = machineIdSync(true);
+                     const license = await createTestLicense(
+                            userId,
+                            clientId,
+                            projectId,
+                            {
+                                   status: Status.ACTIVE,
+                                   machineId: runtimeMachineId,
+                                   instanceId: "instance-original",
+                            },
+                     );
+
                      const response = await request(app)
                             .post("/validate/activate")
                             .send({
-                                   key: "NONEXISTENT-KEY",
+                                   key: license.key,
+                                   instanceId: "instance-different",
                             });
 
-                     expect(response.status).toBe(404);
+                     expect(response.status).toBe(403);
                      expect(response.body.success).toBe(false);
-                     expect(response.body.message).toBe("License not found");
+                     expect(response.body.message).toBe(
+                            "License already activated on another instance",
+                     );
               });
-
-
-              
        });
 });
