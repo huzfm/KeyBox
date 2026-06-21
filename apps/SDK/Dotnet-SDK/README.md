@@ -31,6 +31,20 @@ await app.RunProtectedAsync(
 
 ## Features
 
-- **Fluent Integration**: Seamlessly wraps `app.Run()` with `RunProtectedAsync`.
+- **Fluent Integration**: Seamlessly wraps `app.RunAsync()` with `RunProtectedAsync`.
 - **Background Validation**: Automatic background checks every 15 minutes.
 - **ASP.NET Core Built-in**: Designed to work naturally with the .NET 8.0+ web stack.
+- **Request Gating on Inactive Licenses**: When a license is expired or revoked, every request is rejected with **HTTP 402 Payment Required** and the message *"Please pay your developer"*. The process stays alive — when the license is renewed, the next request succeeds without a restart.
+- **State Manager**: Read or set the current license state at runtime via `KeyboxClient.GetLicenseState()` / `SetLicenseState(...)`. The `KeyboxClient.LicenseState` class exposes `Valid`, `Expired`, `Revoked`, `Invalid`, `Unknown`.
+- **Custom Guard**: Call `app.UseKeyboxGuard("/webhooks", "/api/internal/...")` to register the gate yourself for fine-grained control. `RunProtectedAsync` registers it globally by default.
+
+## 402 response shape
+
+```json
+{
+  "error": "LICENSE_INACTIVE",
+  "state": "expired",
+  "message": "Please pay your developer",
+  "renewContact": "support@keybox.dev"
+}
+```
