@@ -3,6 +3,10 @@
   "version": "1.0.1",
   "description": "Node.js licensing SDK",
   "main": "index.js",
+  "files": [
+    "index.js",
+    "README.md"
+  ],
   "keywords": [
     "licensing",
     "activation",

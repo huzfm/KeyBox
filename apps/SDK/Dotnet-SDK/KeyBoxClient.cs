@@ -23,28 +23,44 @@ public static class KeyboxClient
 
     private static System.Threading.Timer? _timer;
     private static readonly object _stateLock = new();
-    private static string _lastState = LicenseState.Unknown;
+    // Initialize with PendingValidation: the explicit cold-start state.
+    // Previously we used Unknown, but the guard treated Unknown as a
+    // free-pass (let requests through), which meant a daemon that
+    // could never reach the server would silently serve traffic
+    // forever with no license. PendingValidation is BLOCKED.
+    private static string _lastState = LicenseState.PendingValidation;
     private static bool _running = false;
     private static string? _instanceId; // populated from disk after activation
 
     // Fixed validation interval (15 minutes)
     private const int VALIDATION_INTERVAL_SECONDS = 900;
 
-    // ---------------- LICENSE STATE ----------------
+    // States mirror the server's Status enum exactly so there is no
+    // impedance mismatch between what the server sends and what the SDK
+    // stores. The only SDK-internal state that has no server counterpart
+    // is PendingValidation (the cold-start sentinel).
     public static class LicenseState
     {
-        public const string Valid = "valid";
-        public const string Expired = "expired";
-        public const string Revoked = "revoked";
-        public const string Invalid = "invalid";
-        public const string Unknown = "unknown";
+        // Server reports the license was created but not activated yet.
+        public const string Pending = "PENDING";
+        // License is valid and active — the only state that lets traffic through.
+        public const string Active = "ACTIVE";
+        // License has passed its expiry date.
+        public const string Expired = "EXPIRED";
+        // License was explicitly revoked by the developer.
+        public const string Revoked = "REVOKED";
+        // Internal SDK sentinel: set on startup before the first successful
+        // response from the license server. Requests are BLOCKED in this state.
+        public const string PendingValidation = "pending_validation";
     }
 
+    // States that definitively indicate the license is not usable.
+    // Requests are blocked (HTTP 402) whenever the current state is in this set.
     private static readonly HashSet<string> _inactiveStates = new()
     {
         LicenseState.Expired,
         LicenseState.Revoked,
-        LicenseState.Invalid,
+        LicenseState.Pending,
     };
 
     // Paths that should never be blocked by the license guard.
@@ -59,11 +75,11 @@ public static class KeyboxClient
     {
         var allowed = new[]
         {
-            LicenseState.Valid,
+            LicenseState.Pending,
+            LicenseState.Active,
             LicenseState.Expired,
             LicenseState.Revoked,
-            LicenseState.Invalid,
-            LicenseState.Unknown,
+            LicenseState.PendingValidation,
         };
         if (Array.IndexOf(allowed, state) < 0)
         {
@@ -257,12 +273,12 @@ public static class KeyboxClient
         var data = JsonSerializer.Deserialize<LicenseResponse>(json,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-        var statusLower = (data?.Status ?? "unknown").ToLowerInvariant();
-        var isActive = data?.Valid == true && statusLower == "active";
+        var statusUpper = (data?.Status ?? "").ToUpperInvariant();
+        var isActive = data?.Valid == true && statusUpper == "ACTIVE";
 
         return new LicenseStatusResult
         {
-            Status = statusLower,
+            Status = statusUpper,
             Active = isActive,
             Data = data,
         };
@@ -274,10 +290,17 @@ public static class KeyboxClient
         string key,
         string apiUrl = "https://api-keybox.vercel.app",
         string endpoint = "/validate",
+        // Override the daemon's poll interval (default 900s / 15 minutes).
+        // Useful for tests and for customers who want a different cadence.
+        // Must be a positive integer.
+        int intervalSeconds = VALIDATION_INTERVAL_SECONDS,
         Func<LicenseResponse, Task>? onStart = null,
         Func<LicenseResponse, Task>? onStop = null,
         Func<LicenseResponse, Task>? onRecover = null)
     {
+        if (intervalSeconds <= 0)
+            throw new ArgumentException("intervalSeconds must be a positive integer", nameof(intervalSeconds));
+
         // Daemon is read-only: never generate a new id here. If none is on
         // disk and none was bound by an earlier activation, every /validate
         // call would 400 (server requires instanceId) — that's the right
@@ -309,35 +332,47 @@ public static class KeyboxClient
                 var data = JsonSerializer.Deserialize<LicenseResponse>(json,
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
 
-                var statusLower = (data.Status ?? "unknown").ToLowerInvariant();
+                var statusUpper = (data.Status ?? "").ToUpperInvariant();
 
                 // Translate server status into our internal LicenseState.
-                // We preserve the raw distinction (expired vs revoked vs
-                // invalid) so the guard middleware can return the right
-                // one in the 402 response body.
+                // Valid server statuses: PENDING, ACTIVE, EXPIRED, REVOKED.
+                // Any unrecognised response is a transient error — keep the
+                // last known state instead of blocking or going to Unknown.
                 string nextState;
-                if (data.Valid) nextState = LicenseState.Valid;
-                else if (_inactiveStates.Contains(statusLower)) nextState = statusLower;
-                else nextState = LicenseState.Unknown;
+                if (data.Valid && statusUpper == LicenseState.Active)
+                    nextState = LicenseState.Active;
+                else if (statusUpper == LicenseState.Revoked)
+                    nextState = LicenseState.Revoked;
+                else if (statusUpper == LicenseState.Expired)
+                    nextState = LicenseState.Expired;
+                else if (statusUpper == LicenseState.Pending)
+                    nextState = LicenseState.Pending;
+                else
+                {
+                    // Unrecognised response — do NOT change state.
+                    Log("WARN", "Unrecognised license server response — keeping current state",
+                        new { currentState = previousState, serverStatus = data.Status, serverValid = data.Valid });
+                    return;
+                }
 
                 string previousState;
                 lock (_stateLock) { previousState = _lastState; }
 
                 if (nextState != previousState)
                 {
-                    if (nextState == LicenseState.Valid)
+                    if (nextState == LicenseState.Active)
                     {
-                        Log("INFO", "License state changed to VALID — requests will be accepted",
+                        Log("INFO", "License state changed to ACTIVE — requests will be accepted",
                             new { from = previousState, to = nextState });
                     }
                     else if (_inactiveStates.Contains(nextState))
                     {
-                        Log("ERROR", $"License state changed to {nextState.ToUpperInvariant()} — requests will be rejected with 402",
+                        Log("ERROR", $"License state changed to {nextState} — requests will be rejected with 402",
                             new { from = previousState, to = nextState, serverMessage = data.Message });
                     }
                     else
                     {
-                        Log("WARN", "License state changed to UNKNOWN",
+                        Log("INFO", $"License state changed to {nextState}",
                             new { from = previousState, to = nextState });
                     }
 
@@ -347,11 +382,11 @@ public static class KeyboxClient
                     {
                         if (onStop != null) await onStop(data);
                     }
-                    else if (nextState == LicenseState.Valid && _inactiveStates.Contains(previousState))
+                    else if (nextState == LicenseState.Active && _inactiveStates.Contains(previousState))
                     {
                         if (onRecover != null) await onRecover(data);
                     }
-                    else if (nextState == LicenseState.Valid)
+                    else if (nextState == LicenseState.Active)
                     {
                         if (onStart != null) await onStart(data);
                     }
@@ -359,13 +394,35 @@ public static class KeyboxClient
             }
             catch (Exception ex)
             {
-                Log("ERROR", "License validation error", new { ex.Message });
+                Log("WARN", "License check failed — keeping app running", new { ex.Message });
 
                 bool shouldFire;
+                string previousStateOnError;
                 lock (_stateLock)
                 {
-                    shouldFire = _lastState != LicenseState.Invalid;
-                    if (shouldFire) _lastState = LicenseState.Invalid;
+                    previousStateOnError = _lastState;
+                    // Network/protocol failure on startup: transition out
+                    // of PENDING_VALIDATION so the guard definitively
+                    // blocks requests and the customer sees an explicit
+                    // INACTIVE state in the logs.
+                    if (previousStateOnError == LicenseState.PendingValidation)
+                    {
+                        _lastState = LicenseState.Revoked;
+                        shouldFire = true;
+                    }
+                    else
+                    {
+                        shouldFire = false;
+                    }
+                }
+
+                if (previousStateOnError == LicenseState.PendingValidation)
+                {
+                    Log(
+                        "ERROR",
+                        "License daemon could not reach the server on startup — requests will be rejected with 402 until the server is reachable",
+                        new { from = LicenseState.PendingValidation, to = LicenseState.Revoked }
+                    );
                 }
 
                 if (shouldFire && onStop != null)
@@ -373,7 +430,7 @@ public static class KeyboxClient
                     await onStop(new LicenseResponse
                     {
                         Valid = false,
-                        Status = "error",
+                        Status = LicenseState.Revoked,
                         Message = ex.Message
                     });
                 }
@@ -392,10 +449,10 @@ public static class KeyboxClient
             catch { }
         },
         null,
-        TimeSpan.FromSeconds(VALIDATION_INTERVAL_SECONDS),
-        TimeSpan.FromSeconds(VALIDATION_INTERVAL_SECONDS));
+        TimeSpan.FromSeconds(intervalSeconds),
+        TimeSpan.FromSeconds(intervalSeconds));
 
-        Log("INFO", "License daemon started", new { intervalSeconds = VALIDATION_INTERVAL_SECONDS });
+        Log("INFO", "License daemon started", new { intervalSeconds });
     }
 
     // ---------------- STOP ----------------
@@ -404,7 +461,6 @@ public static class KeyboxClient
         _timer?.Change(Timeout.Infinite, Timeout.Infinite);
         _timer?.Dispose();
         _timer = null;
-        SetLicenseState(LicenseState.Unknown);
         Log("INFO", "License daemon stopped");
     }
 
@@ -420,10 +476,13 @@ public static class KeyboxClient
         return app.Use(async (context, next) =>
         {
             var state = GetLicenseState();
-            if (state == LicenseState.Valid || state == LicenseState.Unknown)
+            // Only ACTIVE lets traffic through. All other states —
+            // PendingValidation (cold start), Pending (not yet activated),
+            // Revoked, Expired — result in a 402. There is no Unknown state:
+            // transient/unrecognised server responses keep the previous
+            // state rather than transitioning to a synthetic blocking state.
+            if (state == LicenseState.Active)
             {
-                // UNKNOWN = we haven't heard from the server yet. Don't
-                // block — the daemon will tighten this on its first tick.
                 await next();
                 return;
             }
@@ -517,8 +576,11 @@ public static class KeyboxClient
         string productName,
         string key,
         string apiUrl = "https://api-keybox.vercel.app",
+        int intervalSeconds = VALIDATION_INTERVAL_SECONDS,
         params string[] bypassPaths)
     {
+        if (intervalSeconds <= 0)
+            throw new ArgumentException("intervalSeconds must be a positive integer", nameof(intervalSeconds));
         try
         {
             // Avoid duplicate activation on cold start: if the server
@@ -564,6 +626,7 @@ public static class KeyboxClient
             key,
             apiUrl,
             endpoint: "/validate",
+            intervalSeconds: intervalSeconds,
             onStart: (data) => Task.CompletedTask,
             onStop: (data) =>
             {

@@ -10,8 +10,13 @@ stop_event = threading.Event()
 # State manager — single source of truth for license state.
 # Customers can read this via get_license_state() to render their
 # own UI; the license_guard() middleware reads from the same store.
+# We initialize with "pending_validation" — the explicit cold-start
+# state. Previously we used "unknown", but the guard treated
+# "unknown" as a free-pass (let requests through), which meant a
+# daemon that could never reach the server would silently serve
+# traffic forever with no license. PENDING_VALIDATION is blocked.
 _state_lock = threading.Lock()
-_last_state = "unknown"
+_last_state = "pending_validation"
 
 
 # Fixed validation interval (15 minutes)
@@ -23,16 +28,26 @@ VALIDATION_INTERVAL_SECONDS = 900
 # --------------------
 
 class LicenseState:
-    """Frozen set of license states used internally and exposed to
-    customer code for branching their own UX logic."""
-    VALID = "valid"
-    EXPIRED = "expired"
-    REVOKED = "revoked"
-    INVALID = "invalid"
-    UNKNOWN = "unknown"
+    """States mirror the server's Status enum exactly so there is no
+    impedance mismatch between what the server sends and what the SDK
+    stores. The only SDK-internal state that has no server counterpart
+    is PENDING_VALIDATION (the cold-start sentinel)."""
+    # Server reports the license was created but not activated yet.
+    PENDING = "PENDING"
+    # License is valid and active — the only state that lets traffic through.
+    ACTIVE = "ACTIVE"
+    # License has passed its expiry date.
+    EXPIRED = "EXPIRED"
+    # License was explicitly revoked by the developer.
+    REVOKED = "REVOKED"
+    # Internal SDK sentinel: set on startup before the first successful
+    # response from the license server. Requests are BLOCKED in this state.
+    PENDING_VALIDATION = "pending_validation"
 
 
-_INACTIVE_STATES = {LicenseState.EXPIRED, LicenseState.REVOKED, LicenseState.INVALID}
+# States that definitively indicate the license is not usable.
+# Requests are blocked (HTTP 402) whenever the current state is in this set.
+_INACTIVE_STATES = {LicenseState.EXPIRED, LicenseState.REVOKED, LicenseState.PENDING}
 
 # Paths that should never be blocked by the license guard. Customers
 # can extend this list via the `bypass_paths` option to
@@ -64,11 +79,11 @@ def set_license_state(state: str) -> None:
     """Update the in-memory license state. Validates the input; logs
     and ignores anything outside `LicenseState`."""
     allowed = {
-        LicenseState.VALID,
+        LicenseState.PENDING,
+        LicenseState.ACTIVE,
         LicenseState.EXPIRED,
         LicenseState.REVOKED,
-        LicenseState.INVALID,
-        LicenseState.UNKNOWN,
+        LicenseState.PENDING_VALIDATION,
     }
     if state not in allowed:
         log("WARN", "Ignoring invalid license state", {"state": state, "allowed": list(allowed)})
@@ -175,8 +190,8 @@ def check_license_status(
         raise RuntimeError("License server did not return JSON")
 
     data = res.json()
-    status = (data.get("status") or "unknown").lower()
-    is_active = data.get("valid") is True and status == "active"
+    status = (data.get("status") or "").upper()
+    is_active = data.get("valid") is True and status == "ACTIVE"
 
     return {"status": status, "active": is_active, "data": data}
 
@@ -255,11 +270,18 @@ def start_license_daemon(
     on_start=None,
     on_stop=None,
     on_recover=None,
+    # Override the daemon's poll interval (default 900s / 15 minutes).
+    # Useful for tests and for customers who want a different cadence.
+    # Must be a positive integer.
+    interval_seconds: int = VALIDATION_INTERVAL_SECONDS,
 ):
     global interval_thread
 
     if not product_name or not key:
         raise ValueError("product_name and key are required")
+
+    if not isinstance(interval_seconds, int) or interval_seconds <= 0:
+        raise ValueError("interval_seconds must be a positive integer")
 
     # Daemon is read-only: never generate a new id here. If none is on
     # disk and none was bound by an earlier activation, every /validate
@@ -268,6 +290,7 @@ def start_license_daemon(
     instance_id = _read_stored_instance_id()
 
     def validate_once():
+        global _last_state
         with _state_lock:
             previous_state = _last_state
 
@@ -289,82 +312,101 @@ def start_license_daemon(
 
             data = res.json()
             valid = data.get("valid", False)
-            status = (data.get("status") or "unknown").lower()
+            # Coerce defensively: server may return status as a non-string.
+            # Compare uppercase to match the server's Status enum.
+            status_upper = (data.get("status") or "").upper()
 
-            # Translate server status into our internal state. We
-            # preserve the raw distinction (expired vs revoked vs
-            # invalid) so the guard can return the right one in the
-            # 402 response body.
-            if valid:
-                next_state = LicenseState.VALID
-            elif status in _INACTIVE_STATES:
-                next_state = status
+            # Translate server status into our internal LicenseState.
+            # Valid server statuses: PENDING, ACTIVE, EXPIRED, REVOKED.
+            # Any unrecognised response is a transient error — keep the
+            # last known state instead of blocking or going to UNKNOWN.
+            if valid and status_upper == LicenseState.ACTIVE:
+                next_state = LicenseState.ACTIVE
+            elif status_upper == LicenseState.REVOKED:
+                next_state = LicenseState.REVOKED
+            elif status_upper == LicenseState.EXPIRED:
+                next_state = LicenseState.EXPIRED
+            elif status_upper == LicenseState.PENDING:
+                next_state = LicenseState.PENDING
             else:
-                next_state = LicenseState.UNKNOWN
+                # Unrecognised response — do NOT change state.
+                log("WARN", "Unrecognised license server response — keeping current state", {
+                    "current_state": previous_state,
+                    "server_status": data.get("status"),
+                    "server_valid": valid,
+                })
+                return
 
             if next_state != previous_state:
-                if next_state == LicenseState.VALID:
-                    log("INFO", "License state changed to VALID — requests will be accepted", {
+                if next_state == LicenseState.ACTIVE:
+                    log("INFO", "License state changed to ACTIVE — requests will be accepted", {
                         "from": previous_state,
                         "to": next_state,
                     })
                 elif next_state in _INACTIVE_STATES:
-                    log("ERROR", f"License state changed to {next_state.upper()} — requests will be rejected with 402", {
+                    log("ERROR", f"License state changed to {next_state} — requests will be rejected with 402", {
                         "from": previous_state,
                         "to": next_state,
                         "server_message": data.get("message"),
                     })
                 else:
-                    log("WARN", "License state changed to UNKNOWN", {
+                    log("INFO", f"License state changed to {next_state}", {
                         "from": previous_state,
                         "to": next_state,
                     })
 
                 with _state_lock:
-                    global _last_state
                     _last_state = next_state
 
                 # Fire the appropriate callback.
                 if next_state in _INACTIVE_STATES and previous_state not in _INACTIVE_STATES:
                     on_stop and on_stop(data)
-                elif next_state == LicenseState.VALID and previous_state in _INACTIVE_STATES:
+                elif next_state == LicenseState.ACTIVE and previous_state in _INACTIVE_STATES:
                     on_recover and on_recover(data)
-                elif next_state == LicenseState.VALID:
+                elif next_state == LicenseState.ACTIVE:
                     on_start and on_start(data)
 
         except Exception as e:
-            log("ERROR", "License validation error", {"error": str(e)})
+            log("WARN", "License check failed — keeping app running", {"error": str(e)})
 
+            # Network/protocol failure on startup: transition out of
+            # PENDING_VALIDATION so the guard definitively blocks requests.
             with _state_lock:
-                global _last_state
-                if _last_state != "invalid":
-                    _last_state = "invalid"
+                previous_state = _last_state
+                if previous_state == LicenseState.PENDING_VALIDATION:
+                    _last_state = LicenseState.REVOKED
                     entered_inactive = True
                 else:
                     entered_inactive = False
 
+            if previous_state == LicenseState.PENDING_VALIDATION:
+                log(
+                    "ERROR",
+                    "License daemon could not reach the server on startup — requests will be rejected with 402 until the server is reachable",
+                    {"from": LicenseState.PENDING_VALIDATION, "to": LicenseState.REVOKED},
+                )
+
             if entered_inactive:
                 on_stop and on_stop({
                     "valid": False,
-                    "status": "error",
+                    "status": LicenseState.REVOKED,
                     "message": str(e),
                 })
 
     def loop():
         validate_once()
-        while not stop_event.wait(VALIDATION_INTERVAL_SECONDS):
+        while not stop_event.wait(interval_seconds):
             validate_once()
 
     stop_event.clear()
     interval_thread = threading.Thread(target=loop, daemon=True)
     interval_thread.start()
 
-    log("INFO", "License daemon started", {"interval_seconds": VALIDATION_INTERVAL_SECONDS})
+    log("INFO", "License daemon started", {"interval_seconds": interval_seconds})
 
 
 def stop_license_daemon():
     stop_event.set()
-    set_license_state(LicenseState.UNKNOWN)
     log("INFO", "License daemon stopped")
 
 
@@ -397,10 +439,12 @@ def license_guard(bypass_paths=None):
 
     async def _guard(request: Request):
         state = get_license_state()
-        if state == LicenseState.VALID or state == LicenseState.UNKNOWN:
-            # UNKNOWN = we haven't heard from the server yet (cold
-            # start before the first /validate). Don't block — the
-            # daemon will tighten this on its first tick.
+        # Only ACTIVE lets traffic through. All other states —
+        # PENDING_VALIDATION (cold start), PENDING (not yet activated),
+        # REVOKED, EXPIRED — result in a 402. There is no UNKNOWN state:
+        # transient/unrecognised server responses keep the previous
+        # state rather than transitioning to a synthetic blocking state.
+        if state == LicenseState.ACTIVE:
             return None
         if _matches_bypass(request.url.path, allowed_paths):
             return None

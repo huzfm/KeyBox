@@ -1,0 +1,9 @@
+# Local smoke tests — never committed or published
+__smoke__/
+# Build artifacts
+*.egg-info/
+__pycache__/
+*.pyc
+.instance-id
+dist/
+build/
