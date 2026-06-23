@@ -70,8 +70,8 @@ function matchesBypass(pathname, bypassPaths) {
      return false
 }
 
-// ─── Pretty console output ──────────────────────────────────────────────
-// ANSI colors — no extra dependency needed, every modern terminal supports these.
+// Pretty console output
+// ANSI colors
 const COLORS = {
      reset: "\x1b[0m",
      dim: "\x1b[2m",
@@ -140,7 +140,6 @@ function printBanner(title, color = COLORS.cyan) {
      console.log(`${color}  ${COLORS.bold}${title}${COLORS.reset}`)
      console.log(`${color}${line}${COLORS.reset}`)
 }
-// ─────────────────────────────────────────────────────────────────────────
 
 // Thrown when the server confirms the license is already bound to a
 // different (machineId, instanceId) pair. Consumers can catch this to
