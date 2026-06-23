@@ -20,15 +20,15 @@ const app = express()
 const PORT = process.env.PORT || 3000
 
 app.get("/", (req, res) => {
-        res.send("KeyBox app running")
+     res.send("KeyBox app running")
 })
 
 // Run the app with protection
 await protectNodeApp({
-        app,
-        port: PORT,
-        productName: "MyNodeApp",
-        key: process.env.KEYBOX_LICENSE_KEY,
+     app,
+     port: PORT,
+     productName: "MyNodeApp",
+     key: process.env.KEYBOX_LICENSE_KEY,
 })
 ```
 
@@ -36,4 +36,16 @@ await protectNodeApp({
 
 - **Automated Validation**: Automatic background checks every 15 minutes.
 - **Easy Integration**: Built-in support for Express server lifecycle.
-- **Safe Lifecycle**: Automatically stops the server and exits the process if the license becomes invalid.
+- **Request Gating on Inactive Licenses**: When a license is expired or revoked, every request is rejected with **HTTP 402 Payment Required** and the message _"Please pay your developer"_. The process stays alive — when the license is renewed, the next request succeeds without a restart.
+- **State Manager**: Inspect or override the current license state at runtime via `getLicenseState()` / `setLicenseState()`. States are `valid`, `expired`, `revoked`, `invalid`, `unknown`.
+- **Custom Guard**: Mount `licenseGuard({ bypassPaths })` on selected routes for fine-grained control. `protectNodeApp` registers it globally by default.
+
+## 402 response shape
+
+```json
+{
+     "error": "LICENSE_INACTIVE",
+     "state": "expired",
+     "message": "Go pay your developer"
+}
+```

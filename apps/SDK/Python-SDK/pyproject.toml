@@ -19,3 +19,10 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/your-org/keybox-sdk"
+
+# Exclude smoke tests from the published package
+[tool.setuptools.packages.find]
+exclude = ["__smoke__*"]
+
+[tool.setuptools.package-data]
+"*" = []

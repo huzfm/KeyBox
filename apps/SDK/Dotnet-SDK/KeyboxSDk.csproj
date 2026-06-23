@@ -20,6 +20,14 @@
 		<None Include="README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
+	<!-- Exclude smoke tests from the NuGet package -->
+	<ItemGroup>
+		<None Remove="__smoke__\**" />
+		<Content Remove="__smoke__\**" />
+		<Compile Remove="__smoke__\**" />
+		<EmbeddedResource Remove="__smoke__\**" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>

@@ -1,0 +1,3 @@
+# Local smoke tests — never committed or published
+__smoke__/
+*.instance-id
