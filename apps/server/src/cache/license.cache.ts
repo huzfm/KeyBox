@@ -10,6 +10,7 @@ export interface CachedLicense {
         duration?: string
         machineId?: string
         instanceId?: string
+        productName?: string | null
 }
 
 const getCachedLicense = async (key: string): Promise<CachedLicense | null> => {

@@ -21,6 +21,7 @@ export interface LicenseType {
      services: Services[]
      machineId: string
      instanceId: string
+     productName: string | null
      user: mongoose.Types.ObjectId
      client: mongoose.Types.ObjectId
      project: mongoose.Types.ObjectId
@@ -90,6 +91,13 @@ const licenseSchema = new Schema<LicenseType>({
           type: String,
           default: null,
           index: true,
+     },
+     // Bug 3 fix: store which product this key was activated for.
+     // Optional for backward-compat — existing licenses without this field
+     // skip product validation (any productName is accepted).
+     productName: {
+          type: String,
+          default: null,
      },
 })
 
