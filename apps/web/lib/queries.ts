@@ -49,7 +49,11 @@ export const useCreateProject = () => {
        });
 };
 
-const flipLicenseStatus = (clients: any, key: string) => {
+const patchLicense = (
+       clients: any,
+       key: string,
+       patch: (license: any) => any,
+) => {
        if (!Array.isArray(clients)) return clients;
 
        return clients.map((client: any) => ({
@@ -58,18 +62,17 @@ const flipLicenseStatus = (clients: any, key: string) => {
                      ...project,
                      licenses: project.licenses?.map((license: any) =>
                             license.key === key
-                                   ? {
-                                          ...license,
-                                          status:
-                                                 license.status === "ACTIVE"
-                                                        ? "REVOKED"
-                                                        : "ACTIVE",
-                                   }
+                                   ? { ...license, ...patch(license) }
                                    : license,
                      ),
               })),
        }));
 };
+
+const flipLicenseStatus = (clients: any, key: string) =>
+       patchLicense(clients, key, (license) => ({
+              status: license.status === "ACTIVE" ? "REVOKED" : "ACTIVE",
+       }));
 
 export const useToggleLicense = () => {
        const qc = useQueryClient();
@@ -93,6 +96,62 @@ export const useToggleLicense = () => {
                      return { previous };
               },
               onError: (_err, _key, context) => {
+                     if (context?.previous) {
+                            qc.setQueryData(
+                                   ["dashboard"],
+                                   context.previous,
+                            );
+                     }
+              },
+              onSettled: () =>
+                     qc.invalidateQueries({ queryKey: ["dashboard"] }),
+       });
+};
+
+export const useRenewLicense = () => {
+       const qc = useQueryClient();
+
+       return useMutation({
+              mutationFn: async ({
+                     key,
+                     duration,
+              }: {
+                     key: string;
+                     duration?: number;
+              }) => {
+                     const { data } = await api.patch(
+                            `/license/renew/${key}`,
+                            duration ? { duration } : {},
+                     );
+                     return data;
+              },
+              onMutate: async ({
+                     key,
+              }: {
+                     key: string;
+                     duration?: number;
+              }) => {
+                     await qc.cancelQueries({ queryKey: ["dashboard"] });
+
+                     const previous = qc.getQueryData(["dashboard"]);
+
+                     qc.setQueryData(["dashboard"], (old: any) =>
+                            patchLicense(old, key, () => ({
+                                   status: "ACTIVE",
+                            })),
+                     );
+
+                     return { previous };
+              },
+              onSuccess: (data, { key }) => {
+                     qc.setQueryData(["dashboard"], (old: any) =>
+                            patchLicense(old, key, () => ({
+                                   status: data.status,
+                                   expiresAt: data.expiresAt,
+                            })),
+                     );
+              },
+              onError: (_err, _vars, context) => {
                      if (context?.previous) {
                             qc.setQueryData(
                                    ["dashboard"],

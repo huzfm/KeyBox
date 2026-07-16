@@ -81,4 +81,116 @@ describe("License Controller", () => {
                expect(response.status).toBe(404)
           })
      })
+
+     describe("PATCH /license/renew/:key", () => {
+          it("should renew an expired license and extend its expiry", async () => {
+               const license = await createTestLicense(
+                    userId,
+                    clientId,
+                    projectId,
+                    {
+                         status: Status.EXPIRED,
+                         duration: 3,
+                    },
+               )
+
+               const response = await request(app)
+                    .patch(`/license/renew/${license.key}`)
+                    .set("Authorization", `Bearer ${authToken}`)
+
+               expect(response.status).toBe(200)
+               expect(response.body.status).toBe(Status.ACTIVE)
+               expect(new Date(response.body.expiresAt).getTime()).toBeGreaterThan(
+                    Date.now(),
+               )
+          })
+
+          it("should renew an active license (early renewal)", async () => {
+               const license = await createTestLicense(
+                    userId,
+                    clientId,
+                    projectId,
+                    {
+                         status: Status.ACTIVE,
+                    },
+               )
+
+               const response = await request(app)
+                    .patch(`/license/renew/${license.key}`)
+                    .set("Authorization", `Bearer ${authToken}`)
+
+               expect(response.status).toBe(200)
+               expect(response.body.status).toBe(Status.ACTIVE)
+          })
+
+          it("should accept an optional new duration", async () => {
+               const license = await createTestLicense(
+                    userId,
+                    clientId,
+                    projectId,
+                    {
+                         status: Status.EXPIRED,
+                    },
+               )
+
+               const response = await request(app)
+                    .patch(`/license/renew/${license.key}`)
+                    .set("Authorization", `Bearer ${authToken}`)
+                    .send({ duration: 12 })
+
+               expect(response.status).toBe(200)
+
+               const expected = new Date()
+               expected.setMonth(expected.getMonth() + 12)
+               expect(
+                    Math.abs(
+                         new Date(response.body.expiresAt).getTime() -
+                              expected.getTime(),
+                    ),
+               ).toBeLessThan(5000)
+          })
+
+          it("should reject renewal of a PENDING license", async () => {
+               const license = await createTestLicense(
+                    userId,
+                    clientId,
+                    projectId,
+                    {
+                         status: Status.PENDING,
+                    },
+               )
+
+               const response = await request(app)
+                    .patch(`/license/renew/${license.key}`)
+                    .set("Authorization", `Bearer ${authToken}`)
+
+               expect(response.status).toBe(400)
+          })
+
+          it("should reject renewal of a license owned by another user", async () => {
+               const otherUser = await createTestUser()
+               const license = await createTestLicense(
+                    otherUser._id.toString(),
+                    clientId,
+                    projectId,
+                    {
+                         status: Status.EXPIRED,
+                    },
+               )
+
+               const response = await request(app)
+                    .patch(`/license/renew/${license.key}`)
+                    .set("Authorization", `Bearer ${authToken}`)
+
+               expect(response.status).toBe(403)
+          })
+
+          it("should return 404 for non-existent license key", async () => {
+               const response = await request(app)
+                    .patch("/license/renew/NONEXISTENT-KEY")
+                    .set("Authorization", `Bearer ${authToken}`)
+
+               expect(response.status).toBe(404)
+          })
+     })
 })
