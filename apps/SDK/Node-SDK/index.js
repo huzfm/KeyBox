@@ -3,66 +3,57 @@ import { randomUUID } from "crypto"
 import { readFileSync, writeFileSync } from "fs"
 import { join } from "path"
 
+// ── Module-level daemon state ─────────────────────────────────────────────────
 let intervalId = null
-
-// State manager — single source of truth for license state.
-// Customers can read this via getLicenseState() to render their own
-// UI; the licenseGuard() middleware reads from the same store.
-// We initialize with "pending_validation" — the explicit cold-start
-// state. Requests are BLOCKED until the first successful daemon tick
-// confirms the license is ACTIVE.
 let lastState = "pending_validation"
+let isValidating = false // Bug 6: overlap guard
+let lastSuccessfulValidation = null // Bug 8: offline grace tracking
 
-// States mirror the server's Status enum exactly so there is no
-// impedance mismatch between what the server sends and what the SDK
-// stores. The only SDK-internal state that has no server counterpart
-// is PENDING_VALIDATION (the cold-start sentinel).
+// ── License State ─────────────────────────────────────────────────────────────
 export const LicenseState = Object.freeze({
-     // Server reports the license was created but not activated yet.
      PENDING: "PENDING",
-     // License is valid and active — the ONLY state that lets traffic through.
      ACTIVE: "ACTIVE",
-     // License has passed its expiry date.
      EXPIRED: "EXPIRED",
-     // License was explicitly revoked by the developer.
      REVOKED: "REVOKED",
-     // Internal SDK sentinel: set on startup before the first successful
-     // response from the license server. Requests are BLOCKED in this
-     // state so the app never silently serves traffic before the license
-     // has been confirmed.
      PENDING_VALIDATION: "pending_validation",
 })
 
-export function getLicenseState() {
-     return lastState
-}
+// Bug 1 fix: server statuses that must map to REVOKED (fail-closed).
+// Previously these fell into the "unrecognised → keep state" branch,
+// leaving an already-ACTIVE app permanently unlocked.
+const HARD_REVOKE_STATUSES = new Set([
+     "invalid",
+     "machine_mismatch",
+     "instance_mismatch",
+     "unknown",
+])
 
-export function setLicenseState(state) {
-     const allowed = Object.values(LicenseState)
-     if (!allowed.includes(state)) {
-          log("WARN", "Ignoring invalid license state", { state, allowed })
-          return
-     }
-     lastState = state
-}
-
-// States that definitively indicate the license is not usable.
-// Requests are blocked (HTTP 402) whenever the current state is in this set.
 const INACTIVE_STATES = new Set([
      LicenseState.EXPIRED,
      LicenseState.REVOKED,
      LicenseState.PENDING,
 ])
 
-// Paths that should never be blocked by the license guard. Customers
-// can extend this list via the `bypassPaths` option to protectNodeApp.
 const DEFAULT_BYPASS_PATHS = ["/health", "/license/status"]
 
+// ── Fetch with timeout ────────────────────────────────────────────────────────
+// Bug 6 fix: every outgoing request has a hard deadline so a slow or
+// absent license server can never hang the daemon indefinitely.
+const DEFAULT_FETCH_TIMEOUT_MS = 10_000
+
+function fetchWithTimeout(url, options, timeoutMs = DEFAULT_FETCH_TIMEOUT_MS) {
+     const controller = new AbortController()
+     const timer = setTimeout(() => controller.abort(), timeoutMs)
+     return fetch(url, { ...options, signal: controller.signal }).finally(() =>
+          clearTimeout(timer),
+     )
+}
+
+// ── Bypass path matching ──────────────────────────────────────────────────────
 function matchesBypass(pathname, bypassPaths) {
      if (!pathname) return false
      for (const pattern of bypassPaths) {
           if (pattern === pathname) return true
-          // Prefix match: "/license" matches "/license/renew", "/license/x/y"
           if (pattern.endsWith("/") && pathname.startsWith(pattern)) return true
           if (!pattern.endsWith("/") && pathname.startsWith(pattern + "/"))
                return true
@@ -70,8 +61,7 @@ function matchesBypass(pathname, bypassPaths) {
      return false
 }
 
-// Pretty console output
-// ANSI colors
+// ── Logging ───────────────────────────────────────────────────────────────────
 const COLORS = {
      reset: "\x1b[0m",
      dim: "\x1b[2m",
@@ -103,7 +93,6 @@ function log(level, message, meta = {}) {
 
      const levelKey = level.toUpperCase()
      const style = LEVEL_STYLES[levelKey] || { color: COLORS.reset, icon: "•" }
-
      const tag = `${style.color}${style.icon} ${levelKey.padEnd(7)}${COLORS.reset}`
      const time = `${COLORS.gray}${timestamp}${COLORS.reset}`
      const msg = `${COLORS.bold}${message}${COLORS.reset}`
@@ -134,16 +123,7 @@ function formatMetaValue(value) {
      return String(value)
 }
 
-function printBanner(title, color = COLORS.cyan) {
-     const line = "─".repeat(Math.max(title.length + 4, 40))
-     console.log(`${color}${line}${COLORS.reset}`)
-     console.log(`${color}  ${COLORS.bold}${title}${COLORS.reset}`)
-     console.log(`${color}${line}${COLORS.reset}`)
-}
-
-// Thrown when the server confirms the license is already bound to a
-// different (machineId, instanceId) pair. Consumers can catch this to
-// show a friendlier message and avoid persisting any local state.
+// ── Error Classes ─────────────────────────────────────────────────────────────
 export class LicenseAlreadyActivatedError extends Error {
      constructor(message) {
           super(message)
@@ -152,9 +132,7 @@ export class LicenseAlreadyActivatedError extends Error {
      }
 }
 
-// Returns the on-disk instance id, or null if none exists yet.
-// We deliberately do NOT generate + persist on the first call — the
-// id is only written to disk after the server confirms activation.
+// ── Instance ID storage ───────────────────────────────────────────────────────
 function readStoredInstanceId() {
      const filePath = join(process.cwd(), ".instance-id")
      try {
@@ -164,22 +142,14 @@ function readStoredInstanceId() {
      }
 }
 
-// Persists the given id to <cwd>/.instance-id. Uses an exclusive-create
-// flag so a concurrent process can't clobber its own id with ours.
 function persistInstanceId(id) {
      const filePath = join(process.cwd(), ".instance-id")
      try {
           writeFileSync(filePath, id, { encoding: "utf8", flag: "wx" })
      } catch (err) {
-          if (err && err.code === "EEXIST") {
-               // Someone (another instance, or a previous successful run)
-               // already wrote a file. Leave it as-is.
-               return
-          }
-          // Other I/O errors: re-read to confirm what's on disk.
+          if (err && err.code === "EEXIST") return
           const existing = readStoredInstanceId()
           if (existing !== id) {
-               // Different content — don't clobber, just log.
                log(
                     "WARN",
                     "Could not persist .instance-id; keeping existing value",
@@ -191,25 +161,35 @@ function persistInstanceId(id) {
      }
 }
 
-// Returns a usable instance id for an outgoing request: the stored one
-// if present, otherwise a fresh candidate that has NOT been written to
-// disk yet. The caller is responsible for calling persistInstanceId()
-// once the server confirms activation.
 function getCandidateInstanceId() {
      return readStoredInstanceId() || randomUUID()
 }
 
-// Read-only check: ask the server whether the license is already
-// activated for the (machineId, instanceId) we'd be sending. Returns
-// `{ status, active, data }` where `active` is true ONLY when the
-// server says `valid: true` AND status === "ACTIVE" for the stored
-// instance id. Callers use this to decide whether activation is
-// actually needed on cold start.
+// ── Public API ────────────────────────────────────────────────────────────────
+
+export function getLicenseState() {
+     return lastState
+}
+
+// Bug 12 fix: setLicenseState is no longer exported.
+// Exporting it let anyone bypass enforcement with a single import:
+//   setLicenseState(LicenseState.ACTIVE)
+// State is now only mutated by the daemon's validated server responses.
+function setLicenseState(state) {
+     const allowed = Object.values(LicenseState)
+     if (!allowed.includes(state)) {
+          log("WARN", "Ignoring invalid license state", { state, allowed })
+          return
+     }
+     lastState = state
+}
+
 export async function checkLicenseStatus({
      productName,
      key,
      apiUrl = "http://localhost:5000",
      endpoint = "/validate",
+     fetchTimeoutMs = DEFAULT_FETCH_TIMEOUT_MS,
 }) {
      if (!productName || !key) {
           throw new Error("productName and key are required")
@@ -217,36 +197,29 @@ export async function checkLicenseStatus({
 
      const instanceId = readStoredInstanceId()
 
-     // No .instance-id on disk → never activated from this app, so
-     // there's nothing the server can confirm. Caller should activate.
      if (!instanceId) {
-          return {
-               status: "not_activated",
-               active: false,
-               data: null,
-          }
+          return { status: "not_activated", active: false, data: null }
      }
 
      log("INFO", "Checking license status", { productName })
 
-     const res = await fetch(`${apiUrl}${endpoint}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ key, productName, instanceId }),
-     })
+     const res = await fetchWithTimeout(
+          `${apiUrl}${endpoint}`,
+          {
+               method: "POST",
+               headers: { "Content-Type": "application/json" },
+               body: JSON.stringify({ key, productName, instanceId }),
+          },
+          fetchTimeoutMs,
+     )
 
      const data = await res.json().catch(() => null)
-
      const rawStatus =
           data && typeof data.status === "string" ? data.status : ""
      const statusUpper = rawStatus.toUpperCase()
      const isActive = data?.valid === true && statusUpper === "ACTIVE"
 
-     return {
-          status: statusUpper,
-          active: isActive,
-          data,
-     }
+     return { status: statusUpper, active: isActive, data }
 }
 
 export async function activateLicense({
@@ -254,6 +227,7 @@ export async function activateLicense({
      key,
      apiUrl = "http://localhost:5000",
      endpoint = "/validate/activate",
+     fetchTimeoutMs = DEFAULT_FETCH_TIMEOUT_MS,
 }) {
      if (!productName || !key) {
           throw new Error("productName and key are required")
@@ -263,17 +237,24 @@ export async function activateLicense({
 
      log("INFO", "Activating license", { productName })
 
-     const res = await fetch(`${apiUrl}${endpoint}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ key, productName, instanceId }),
-     })
+     const res = await fetchWithTimeout(
+          `${apiUrl}${endpoint}`,
+          {
+               method: "POST",
+               headers: { "Content-Type": "application/json" },
+               body: JSON.stringify({ key, productName, instanceId }),
+          },
+          fetchTimeoutMs,
+     )
 
      const data = await res.json().catch(() => {
           throw new Error("License server did not return JSON")
      })
 
-     if (!res.ok || data?.success === false) {
+     // Bug 7 fix: require success === true.
+     // Previously data?.success === false meant HTTP 200 with {} was accepted
+     // as a successful activation (missing field ≠ false).
+     if (!res.ok || data?.success !== true) {
           const message = data?.message || "License activation failed"
 
           log("ERROR", "License server rejected activation", {
@@ -295,17 +276,17 @@ export async function activateLicense({
           throw new Error(message)
      }
 
-     // Server accepted this (machineId, instanceId) pair. Safe to commit
-     // the id to disk now — only on a real success do we make it sticky.
      if (!readStoredInstanceId()) {
           persistInstanceId(instanceId)
      }
 
-     log("INFO", "License activated")
+     log("SUCCESS", "License activated")
      return data
 }
 
-const DEFAULT_INTERVAL = 900 // seconds (dev default)
+// Production default: 15 minutes. Keeps well within the server's
+// 3000-requests-per-15-min rate limit even across many instances.
+const DEFAULT_INTERVAL = 900 // seconds
 
 export async function startLicenseDaemon({
      productName,
@@ -315,69 +296,142 @@ export async function startLicenseDaemon({
      onRevoke,
      onRecover,
      intervalSeconds = DEFAULT_INTERVAL,
+     fetchTimeoutMs = DEFAULT_FETCH_TIMEOUT_MS,
+     offlineGraceSeconds,
 }) {
      if (!productName || !key) {
           throw new Error("productName and key are required")
      }
 
-     // Daemon is read-only: never generate a new id here. If none is on
-     // disk and none was bound by an earlier activation, every /validate
-     // call would 400 (server requires instanceId) — that's the right
-     // signal: the user must run activation first.
-     const instanceId = readStoredInstanceId()
+     // Bug 8: offline grace defaults to 2× interval, minimum 30 minutes.
+     const offlineGraceMs =
+          (offlineGraceSeconds ?? Math.max(intervalSeconds * 2, 1800)) * 1000
+
+     // Helper: fire a callback without letting it crash the daemon.
+     // Bug 10 fix: async callbacks are wrapped so unhandled rejections
+     // never reach the process-level unhandledRejection handler.
+     function fireCallback(cb, data) {
+          if (!cb) return
+          Promise.resolve(cb(data)).catch((err) =>
+               log("WARN", "License callback threw", { error: err.message }),
+          )
+     }
 
      async function validateOnce() {
-          log("INFO", "Validating license", { productName })
-
-          if (!instanceId) {
-               log("WARN", "No .instance-id on disk — run activation first")
+          // Bug 6 fix: skip this tick entirely if the previous one is still
+          // in-flight. Prevents overlapping fetches from arriving out of order
+          // and overwriting a newer license state with a stale one.
+          if (isValidating) {
+               log(
+                    "INFO",
+                    "Skipping validation tick — previous check still in progress",
+               )
                return
           }
+          isValidating = true
 
           try {
-               const res = await fetch(`${apiUrl}${endpoint}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ key, productName, instanceId }),
-               })
+               // Bug 4 fix: re-read the instance ID on every tick.
+               // The original code captured it once at daemon startup, so a
+               // failed activation on cold start left it permanently null with
+               // no retry path — the daemon just silently skipped every tick.
+               let instanceId = readStoredInstanceId()
+
+               if (!instanceId) {
+                    if (lastState === LicenseState.PENDING_VALIDATION) {
+                         log(
+                              "WARN",
+                              "No .instance-id on disk — retrying activation",
+                         )
+                         try {
+                              await activateLicense({
+                                   productName,
+                                   key,
+                                   apiUrl,
+                                   fetchTimeoutMs,
+                              })
+                              instanceId = readStoredInstanceId()
+                         } catch (activationErr) {
+                              log("WARN", "Activation retry failed", {
+                                   error: activationErr.message,
+                              })
+                         }
+                    }
+                    if (!instanceId) {
+                         log(
+                              "WARN",
+                              "No .instance-id on disk — skipping validation",
+                         )
+                         return
+                    }
+               }
+
+               log("INFO", "Validating license", { productName })
+
+               // Bug 6 fix: hard fetch deadline.
+               const res = await fetchWithTimeout(
+                    `${apiUrl}${endpoint}`,
+                    {
+                         method: "POST",
+                         headers: { "Content-Type": "application/json" },
+                         body: JSON.stringify({ key, productName, instanceId }),
+                    },
+                    fetchTimeoutMs,
+               )
+
+               // 429 and 5xx are transient — keep current state without blocking.
+               if (res.status === 429 || res.status >= 500) {
+                    log(
+                         "WARN",
+                         "Transient server response — keeping current state",
+                         {
+                              httpStatus: res.status,
+                              currentState: lastState,
+                         },
+                    )
+                    return
+               }
 
                const data = await res.json().catch(() => {
                     throw new Error("Non-JSON response from license server")
                })
 
-               // Coerce defensively: the server may return status as a
-               // string, an object, null, or missing entirely. Anything
-               // non-string would crash .toUpperCase(). Compare uppercase
-               // to match the server's Status enum exactly.
                const rawStatus =
                     data && typeof data.status === "string" ? data.status : ""
                const statusUpper = rawStatus.toUpperCase()
 
-               // Translate server status into our internal LicenseState.
-               // Valid server statuses: PENDING, ACTIVE, EXPIRED, REVOKED.
-               // Any unrecognised response is treated as a transient error —
-               // we keep the last known state rather than blocking access or
-               // transitioning to a synthetic UNKNOWN state.
+               // Bug 1 fix: map hard-fail server statuses to REVOKED.
+               // Previously invalid/machine_mismatch/instance_mismatch fell into
+               // the "unrecognised → keep state" branch, leaving an ACTIVE app
+               // permanently unlocked after the server denied the license.
                let nextState
-               if (data.valid === true && statusUpper === "ACTIVE") {
-                    nextState = LicenseState.ACTIVE
-               } else if (statusUpper === LicenseState.REVOKED) {
+               if (HARD_REVOKE_STATUSES.has(rawStatus.toLowerCase())) {
                     nextState = LicenseState.REVOKED
-               } else if (statusUpper === LicenseState.EXPIRED) {
+                    log(
+                         "WARN",
+                         "License validation returned hard-fail status — revoking",
+                         {
+                              serverStatus: rawStatus,
+                         },
+                    )
+               } else if (data.valid === true && statusUpper === "ACTIVE") {
+                    nextState = LicenseState.ACTIVE
+                    lastSuccessfulValidation = Date.now() // Bug 8: update grace timestamp
+               } else if (statusUpper === "REVOKED") {
+                    nextState = LicenseState.REVOKED
+               } else if (statusUpper === "EXPIRED") {
                     nextState = LicenseState.EXPIRED
-               } else if (statusUpper === LicenseState.PENDING) {
+               } else if (statusUpper === "PENDING") {
                     nextState = LicenseState.PENDING
                } else {
-                    // Unrecognised response (server error, unexpected payload,
-                    // etc.) — do NOT change state. Keep whatever we had before
-                    // so a single bad response doesn't block a live app.
+                    // Truly unrecognised payload — keep previous state (transient).
                     log(
                          "WARN",
                          "Unrecognised license server response — keeping current state",
                          {
                               currentState: lastState,
                               serverStatus: rawStatus,
-                              serverValid: data.valid,
+                              serverValid: data?.valid,
                          },
                     )
                     return
@@ -409,53 +463,85 @@ export async function startLicenseDaemon({
                               to: nextState,
                          })
                     }
+
                     const previousState = lastState
                     lastState = nextState
 
-                    // Fire the appropriate callback. `onRevoke` fires on any
-                    // transition into an inactive state. `onRecover` fires when
-                    // the license transitions back to ACTIVE.
                     if (
                          INACTIVE_STATES.has(nextState) &&
                          !INACTIVE_STATES.has(previousState)
                     ) {
-                         onRevoke?.(data)
+                         fireCallback(onRevoke, data)
                     } else if (
                          nextState === LicenseState.ACTIVE &&
                          INACTIVE_STATES.has(previousState)
                     ) {
-                         onRecover?.(data)
+                         fireCallback(onRecover, data)
                     }
                }
           } catch (err) {
                log("WARN", "License check failed — keeping current state", {
                     error: err.message,
                })
-               // Network/protocol failure on startup: transition out of
-               // PENDING_VALIDATION so the guard definitively blocks requests.
+
                if (lastState === LicenseState.PENDING_VALIDATION) {
+                    // Cold-start network failure: block immediately.
                     lastState = LicenseState.REVOKED
                     log(
                          "ERROR",
-                         "License daemon could not reach the server on startup — requests will be rejected with 402 until the server is reachable",
+                         "License daemon could not reach the server on startup — requests will be rejected with 402",
                          {
                               from: LicenseState.PENDING_VALIDATION,
                               to: LicenseState.REVOKED,
                          },
                     )
+                    // Bug 10 fix: fire onRevoke for cold-start failures too.
+                    fireCallback(onRevoke, null)
+               } else if (
+                    lastState === LicenseState.ACTIVE &&
+                    lastSuccessfulValidation !== null
+               ) {
+                    // Bug 8 fix: bounded offline grace period.
+                    // Before this fix, a network failure after reaching ACTIVE
+                    // kept the app unlocked indefinitely.
+                    const elapsed = Date.now() - lastSuccessfulValidation
+                    if (elapsed > offlineGraceMs) {
+                         log(
+                              "ERROR",
+                              "Offline grace period exceeded — blocking requests",
+                              {
+                                   graceMinutes: Math.round(
+                                        offlineGraceMs / 60_000,
+                                   ),
+                                   elapsedMinutes: Math.round(elapsed / 60_000),
+                              },
+                         )
+                         lastState = LicenseState.REVOKED
+                         fireCallback(onRevoke, null)
+                    } else {
+                         log(
+                              "WARN",
+                              "Network failure — within offline grace period",
+                              {
+                                   elapsedMinutes: Math.round(elapsed / 60_000),
+                                   graceMinutes: Math.round(
+                                        offlineGraceMs / 60_000,
+                                   ),
+                              },
+                         )
+                    }
                }
+          } finally {
+               // Bug 6: always release the overlap guard, even on throw.
+               isValidating = false
           }
      }
 
      await validateOnce()
 
-     // Daemon keeps running regardless of state. The middleware/guard
-     // is what blocks traffic — never the process lifecycle.
      intervalId = setInterval(validateOnce, intervalSeconds * 1000)
 
-     log("INFO", "License daemon started", {
-          intervalSeconds,
-     })
+     log("INFO", "License daemon started", { intervalSeconds })
 }
 
 export function stopLicenseDaemon() {
@@ -466,24 +552,12 @@ export function stopLicenseDaemon() {
      log("INFO", "License daemon stopped")
 }
 
-// Express middleware that rejects every request with HTTP 402 when
-// the current license state is not ACTIVE. Read-only — never mutates
-// state. Customers can mount this themselves; otherwise
-// `protectNodeApp` auto-registers it.
-//
-// `bypassPaths` is an optional array of path prefixes that skip the
-// guard (defaults to /health and /license/status are always included).
 export function licenseGuard({ bypassPaths = [] } = {}) {
      const allowedPaths = [...DEFAULT_BYPASS_PATHS, ...bypassPaths]
 
      return function guard(req, res, next) {
           const state = getLicenseState()
 
-          // Only ACTIVE lets traffic through. All other states —
-          // PENDING_VALIDATION (cold start), PENDING (not yet activated),
-          // REVOKED, EXPIRED — result in a 402. There is no UNKNOWN state:
-          // transient/unrecognised server responses keep the previous
-          // state rather than transitioning to a synthetic blocking state.
           if (state === LicenseState.ACTIVE) {
                return next()
           }
@@ -507,35 +581,27 @@ export async function protectNodeApp({
      key,
      apiUrl,
      bypassPaths,
+     onRevoke,
+     onRecover,
+     intervalSeconds,
+     fetchTimeoutMs,
+     offlineGraceSeconds,
 }) {
      if (!app) throw new Error("Express app instance is required")
      if (port === undefined || port === null)
           throw new Error("port is required")
 
-     // Register the guard, then PROMOTE it to the very front of the
-     // Express middleware stack. This matters: if the customer
-     // registered their own routes BEFORE calling protectNodeApp, a
-     // plain `app.use(licenseGuard)` would be appended to the end of
-     // the stack — and Express only runs later middleware if the route
-     // handler calls `next()`. Route handlers that send a response
-     // directly would bypass our guard entirely, which is exactly the
-     // "license revoked but requests still pass" failure mode we are
-     // fixing here.
      const guard = licenseGuard({ bypassPaths })
      app.use(guard)
      promoteMiddlewareToFront(app, guard)
 
-     // Avoid duplicate activation on cold start: if the server already
-     // confirms this (machineId, instanceId) is active, skip the
-     // /validate/activate call entirely and go straight to the daemon.
-     //
-     // We deliberately do NOT throw on activation failure. If the
-     // license is already revoked, the server will refuse to activate
-     // — but the customer's app should still come up so the guard can
-     // serve 402 responses and so that, once the customer pays, the
-     // next daemon tick flips state back to ACTIVE without a restart.
      try {
-          const status = await checkLicenseStatus({ productName, key, apiUrl })
+          const status = await checkLicenseStatus({
+               productName,
+               key,
+               apiUrl,
+               fetchTimeoutMs,
+          })
           if (status.active) {
                log(
                     "INFO",
@@ -548,7 +614,12 @@ export async function protectNodeApp({
                log("INFO", "License not active — activating", {
                     status: status.status,
                })
-               await activateLicense({ productName, key, apiUrl })
+               await activateLicense({
+                    productName,
+                    key,
+                    apiUrl,
+                    fetchTimeoutMs,
+               })
           }
      } catch (err) {
           if (err instanceof LicenseAlreadyActivatedError) {
@@ -568,33 +639,27 @@ export async function protectNodeApp({
                     },
                )
           }
-          // Do not re-throw. The guard is already wired up; the daemon
-          // will retry on its next tick. The server still starts so
-          // /health stays reachable and renewals are observed.
      }
 
      app.listen(port, () => {
           log("INFO", `Licensed app running at http://localhost:${port}`)
      })
 
-     // Daemon just feeds the state manager; the guard middleware does
-     // the enforcement. No server.close() or process.exit() on state
-     // change — when the license is renewed, the next tick flips state
-     // back to ACTIVE and the next request succeeds without a restart.
-     await startLicenseDaemon({ productName, key, apiUrl })
+     await startLicenseDaemon({
+          productName,
+          key,
+          apiUrl,
+          onRevoke,
+          onRecover,
+          intervalSeconds,
+          fetchTimeoutMs,
+          offlineGraceSeconds,
+     })
 }
 
-// Move a just-registered middleware function to the very front of the
-// Express app's router stack so it runs before any customer-registered
-// routes or middleware. This is what makes the 402 gate actually take
-// effect even when the customer has already wired up their API.
-//
-// Express stores middleware in `app._router.stack` as `{ route, handle,
-// name, ... }` layer objects. We splice the matching layer to index 0.
-//
-// We tolerate missing internals gracefully — if Express ever changes
-// its internal layout, we fall back to a `process.emitWarning` so
-// customers still see the original `app.use(licenseGuard())` we added.
+// ── Express middleware stack manipulation ─────────────────────────────────────
+// Splices the license guard to run immediately after Express's own built-in
+// middleware (query + init) so it covers all customer-registered routes.
 function promoteMiddlewareToFront(app, middlewareFn) {
      try {
           const router = app._router || app.router
@@ -607,7 +672,6 @@ function promoteMiddlewareToFront(app, middlewareFn) {
           }
           const stack = router.stack
 
-          // Find our guard layer.
           let idx = -1
           for (let i = 0; i < stack.length; i++) {
                if (stack[i].handle === middlewareFn) {
@@ -615,20 +679,8 @@ function promoteMiddlewareToFront(app, middlewareFn) {
                     break
                }
           }
-          if (idx < 0) return // not found; app.use may have failed silently
+          if (idx < 0) return
 
-          // Express ships several built-in middlewares that must run
-          // before any user middleware because they set up the req/res
-          // prototypes. Currently `query` and `init` are prepended by
-          // Express when the app is created (or first used). If we
-          // splice our guard before them, `res` arrives as a raw
-          // http.ServerResponse with no `.status`, `.json`, etc.
-          //
-          // Strategy: find the LAST built-in middleware in the stack
-          // and insert our guard immediately after it. We identify
-          // built-ins by the fact they have a `name` matching one of
-          // Express's known built-ins AND no `route` (they were added
-          // via app.use internally).
           const BUILTIN_NAMES = new Set(["query", "init", "expressInit"])
           let lastBuiltinIdx = -1
           for (let i = 0; i < stack.length; i++) {
@@ -642,27 +694,15 @@ function promoteMiddlewareToFront(app, middlewareFn) {
           if (idx === target) return
 
           const [layer] = stack.splice(idx, 1)
-          // After splicing, indices above the removal point shifted
-          // down by 1. Re-clamp the insertion index.
           const insertAt = Math.min(target, stack.length)
           stack.splice(insertAt, 0, layer)
+
           log(
                "INFO",
                "Promoted license guard to run after Express built-in middlewares",
                {
                     from: idx,
                     to: insertAt,
-                    builtinsFound:
-                         lastBuiltinIdx >= 0
-                              ? stack
-                                     .slice(0, lastBuiltinIdx + 1)
-                                     .map(
-                                          (l) =>
-                                               l.name ||
-                                               (l.handle && l.handle.name),
-                                     )
-                                     .filter(Boolean)
-                              : [],
                     totalLayers: stack.length,
                },
           )

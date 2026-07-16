@@ -2,11 +2,15 @@ import { invalidateCachedLicense } from "../cache/license.cache"
 import { Request, Response } from "express"
 import { License, Status } from "../models/License"
 import { getCachedLicense, setCachedLicense } from "../cache/license.cache"
-import { machineIdSync } from "node-machine-id"
+
+// Bug 2 fix: the server no longer calls machineIdSync() on the API host.
+// The SDK now sends the customer machine's ID in every request body.
+// Using the server's own machine ID was meaningless (and broken for replicas).
 
 export const validateLicense = async (req: Request, res: Response) => {
      try {
-          const { key, instanceId } = req.body
+          // Bug 2 fix: use machineId from the request body (customer's machine).
+          const { key, instanceId, machineId: clientMachineId } = req.body
 
           if (!key) {
                return res.status(400).json({
@@ -22,19 +26,17 @@ export const validateLicense = async (req: Request, res: Response) => {
                })
           }
 
-          //Generate current machine ID
-          const currentMachineId = machineIdSync(true)
-
-          // 1. Try Redis first
+          // 1. Try Redis cache first
           const cached = await getCachedLicense(key)
           if (cached) {
                console.log("REDIS HIT for license:", key)
 
-               //  Machine mismatch
+               // Machine mismatch — compare against client-supplied ID
                if (
                     cached.status === Status.ACTIVE &&
                     cached.machineId &&
-                    cached.machineId !== currentMachineId
+                    clientMachineId &&
+                    cached.machineId !== clientMachineId
                ) {
                     return res.json({
                          valid: false,
@@ -43,7 +45,7 @@ export const validateLicense = async (req: Request, res: Response) => {
                     })
                }
 
-               //  Instance mismatch (one license key = one (machineId, instanceId) pair)
+               // Instance mismatch
                if (
                     cached.status === Status.ACTIVE &&
                     cached.instanceId &&
@@ -56,6 +58,19 @@ export const validateLicense = async (req: Request, res: Response) => {
                     })
                }
 
+               // Bug 3 fix: productName validation (skip if license has no productName set)
+               if (
+                    cached.productName &&
+                    req.body.productName &&
+                    cached.productName !== req.body.productName
+               ) {
+                    return res.json({
+                         valid: false,
+                         status: "invalid",
+                         message: "License key is not valid for this product",
+                    })
+               }
+
                if (cached.status !== Status.ACTIVE) {
                     return res.json({
                          valid: false,
@@ -65,10 +80,7 @@ export const validateLicense = async (req: Request, res: Response) => {
                     })
                }
 
-               if (
-                    cached.expiresAt &&
-                    new Date() > new Date(cached.expiresAt)
-               ) {
+               if (cached.expiresAt && new Date() > new Date(cached.expiresAt)) {
                     const license = await License.findOneAndUpdate(
                          { key },
                          { status: Status.EXPIRED },
@@ -84,6 +96,7 @@ export const validateLicense = async (req: Request, res: Response) => {
                               message: "License has expired",
                               machineId: license.machineId,
                               instanceId: license.instanceId,
+                              productName: license.productName,
                          })
                     }
 
@@ -116,11 +129,12 @@ export const validateLicense = async (req: Request, res: Response) => {
                })
           }
 
-          // Machine mismatch check (authoritative)
+          // Bug 2 fix: use client-supplied machineId for comparison
           if (
                license.status === Status.ACTIVE &&
                license.machineId &&
-               license.machineId !== currentMachineId
+               clientMachineId &&
+               license.machineId !== clientMachineId
           ) {
                return res.json({
                     valid: false,
@@ -129,7 +143,6 @@ export const validateLicense = async (req: Request, res: Response) => {
                })
           }
 
-          // Instance mismatch check (authoritative)
           if (
                license.status === Status.ACTIVE &&
                license.instanceId &&
@@ -142,12 +155,26 @@ export const validateLicense = async (req: Request, res: Response) => {
                })
           }
 
+          // Bug 3 fix: productName guard (only when both sides have a value)
+          if (
+               license.productName &&
+               req.body.productName &&
+               license.productName !== req.body.productName
+          ) {
+               return res.json({
+                    valid: false,
+                    status: "invalid",
+                    message: "License key is not valid for this product",
+               })
+          }
+
           if (license.status === Status.REVOKED) {
                await setCachedLicense(key, {
                     status: Status.REVOKED,
                     message: "License revoked by developer",
                     machineId: license.machineId,
                     instanceId: license.instanceId,
+                    productName: license.productName,
                })
 
                return res.json({
@@ -177,6 +204,7 @@ export const validateLicense = async (req: Request, res: Response) => {
                     expiresAt: license.expiresAt.getTime(),
                     machineId: license.machineId,
                     instanceId: license.instanceId,
+                    productName: license.productName,
                })
 
                return res.json({
@@ -202,13 +230,13 @@ export const validateLicense = async (req: Request, res: Response) => {
                     })
                }
 
-               // Cache INCLUDING machineId + instanceId
                await setCachedLicense(key, {
                     status: Status.ACTIVE,
                     expiresAt: license.expiresAt.getTime(),
                     duration: `${license.duration} months`,
                     machineId: license.machineId,
                     instanceId: license.instanceId,
+                    productName: license.productName,
                })
 
                return res.json({
@@ -236,7 +264,9 @@ export const validateLicense = async (req: Request, res: Response) => {
 
 export const activateLicense = async (req: Request, res: Response) => {
      try {
-          const { key, instanceId } = req.body
+          // Bug 2 fix: use machineId sent by the SDK (customer's machine),
+          // not machineIdSync() which would return the API server's machine ID.
+          const { key, instanceId, machineId: clientMachineId, productName } = req.body
 
           if (!key) {
                return res.status(400).json({
@@ -252,43 +282,62 @@ export const activateLicense = async (req: Request, res: Response) => {
                })
           }
 
-          //  Generate stable machine ID (hashed)
-          const machineId = machineIdSync(true)
-          console.log(machineId)
+          if (!clientMachineId) {
+               return res.status(400).json({
+                    success: false,
+                    message: "Machine ID is required",
+               })
+          }
 
-          const license = await License.findOne({ key })
+          // Bug 9 fix: atomic pending→active transition.
+          // findOneAndUpdate with { key, status: PENDING } ensures only one
+          // concurrent activation request wins — the second gets null back and
+          // falls through to the "already activated" branch below.
+          const issuedAt = new Date()
+          const tempExpiresAt = new Date() // placeholder, replaced after lookup
 
-          if (!license) {
+          // First, look up the license to validate it before atomically activating.
+          const existing = await License.findOne({ key })
+
+          if (!existing) {
                return res.status(404).json({
                     success: false,
                     message: "License not found",
                })
           }
 
-          if (license.status === Status.REVOKED) {
+          if (existing.status === Status.REVOKED) {
                return res.status(403).json({
                     success: false,
                     message: "License has been revoked",
                })
           }
 
-          if (license.status === Status.EXPIRED) {
+          if (existing.status === Status.EXPIRED) {
                return res.status(403).json({
                     success: false,
                     message: "License has expired",
                })
           }
 
-          // Already activated
-          if (license.status === Status.ACTIVE) {
-               if (license.machineId !== machineId) {
+          // Bug 3 fix: if the license was created with a productName, it must match.
+          if (existing.productName && productName && existing.productName !== productName) {
+               return res.status(403).json({
+                    success: false,
+                    message: "License key is not valid for this product",
+               })
+          }
+
+          // Already activated — allow re-activation only if same machine + instance.
+          if (existing.status === Status.ACTIVE) {
+               if (existing.machineId !== clientMachineId) {
                     return res.status(403).json({
                          success: false,
                          message: "License already activated on another machine",
                     })
                }
 
-               if (license.instanceId !== instanceId) {
+               if (existing.instanceId !== instanceId) {
                     return res.status(403).json({
                          success: false,
                          message: "License already activated on another instance",
@@ -298,31 +347,67 @@ export const activateLicense = async (req: Request, res: Response) => {
                return res.json({
                     success: true,
                     message: "License already activated",
-                    activatedAt: license.issuedAt,
-                    expiresAt: license.expiresAt,
+                    activatedAt: existing.issuedAt,
+                    expiresAt: existing.expiresAt,
                })
           }
 
-          //  First-time activation
-          const issuedAt = new Date()
+          // Bug 9 fix: use atomic conditional update so two concurrent first-activation
+          // requests for the same PENDING key cannot both succeed with different UUIDs.
+          const activatedAt = new Date()
           const expiresAt = new Date()
-          expiresAt.setMonth(expiresAt.getMonth() + license.duration)
+          expiresAt.setMonth(expiresAt.getMonth() + existing.duration)
 
-          license.status = Status.ACTIVE
-          license.issuedAt = issuedAt
-          license.expiresAt = expiresAt
-          license.machineId = machineId
-          license.instanceId = instanceId
+          const license = await License.findOneAndUpdate(
+               { key, status: Status.PENDING }, // only matches if still PENDING
+               {
+                    $set: {
+                         status: Status.ACTIVE,
+                         issuedAt: activatedAt,
+                         expiresAt,
+                         machineId: clientMachineId,
+                         instanceId,
+                         // Bug 3: store productName on first activation if provided
+                         ...(productName ? { productName } : {}),
+                    },
+               },
+               { new: true },
+          )
 
-          await license.save()
+          if (!license) {
+               // Race condition: another process activated the key between our
+               // findOne check and the findOneAndUpdate. Fetch the current state.
+               const winner = await License.findOne({ key })
+               if (winner?.status === Status.ACTIVE) {
+                    if (winner.machineId !== clientMachineId || winner.instanceId !== instanceId) {
+                         return res.status(403).json({
+                              success: false,
+                              message: "License already activated on another instance",
+                         })
+                    }
+                    // Same credentials won — idempotent success.
+                    return res.json({
+                         success: true,
+                         message: "License already activated",
+                         activatedAt: winner.issuedAt,
+                         expiresAt: winner.expiresAt,
+                    })
+               }
+
+               return res.status(409).json({
+                    success: false,
+                    message: "Activation conflict — please retry",
+               })
+          }
+
           await invalidateCachedLicense(key)
 
           return res.json({
                success: true,
                message: "License activated successfully",
-               machineId,
+               machineId: clientMachineId,
                instanceId,
-               activatedAt: issuedAt,
+               activatedAt,
                expiresAt,
           })
      } catch (error) {

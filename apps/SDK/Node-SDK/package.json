@@ -1,8 +1,11 @@
 {
   "name": "keybox-sdk",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Node.js licensing SDK",
   "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
   "files": [
     "index.js",
     "README.md"
@@ -13,12 +16,16 @@
     "subscription"
   ],
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "author": "huzfm",
   "license": "MIT",
   "dependencies": {
-    "axios": "^1.6.0",
-    "express": "^4.22.1",
     "node-fetch": "^3.3.2",
     "node-machine-id": "^1.1.12"
+  },
+  "peerDependencies": {
+    "express": ">=4"
   }
 }

@@ -1,67 +1,81 @@
+import hashlib
+import platform
+import re
 import requests
 import threading
+import time
 import uuid
 from datetime import datetime
 import os
 
-interval_thread = None
-stop_event = threading.Event()
-
-# State manager — single source of truth for license state.
-# Customers can read this via get_license_state() to render their
-# own UI; the license_guard() middleware reads from the same store.
-# We initialize with "pending_validation" — the explicit cold-start
-# state. Previously we used "unknown", but the guard treated
-# "unknown" as a free-pass (let requests through), which meant a
-# daemon that could never reach the server would silently serve
-# traffic forever with no license. PENDING_VALIDATION is blocked.
+# ── Module-level daemon state ─────────────────────────────────────────────────
+_interval_thread: threading.Thread | None = None
+_stop_event = threading.Event()
 _state_lock = threading.Lock()
-_last_state = "pending_validation"
+_last_state: str = "pending_validation"
+_is_validating: bool = False            # Bug 6: overlap guard
+_last_successful_validation: float | None = None  # Bug 8: offline grace (monotonic ts)
+
+# ── Machine ID ────────────────────────────────────────────────────────────────
+# Bug 2 fix: compute a stable hashed identifier from this machine's hardware.
+# uuid.getnode() returns the MAC address as an integer — stable per NIC.
+# We combine it with the hostname for better uniqueness.
+_machine_id: str | None = None
+
+def _get_machine_id() -> str:
+    global _machine_id
+    if _machine_id:
+        return _machine_id
+    try:
+        raw = f"{platform.node()}-{uuid.getnode()}"
+        _machine_id = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+    except Exception:
+        _machine_id = "fallback-" + uuid.uuid4().hex
+    return _machine_id
 
 
-# Fixed validation interval (15 minutes)
-VALIDATION_INTERVAL_SECONDS = 900
-
-
-# --------------------
-# License State
-# --------------------
-
+# ── License State ─────────────────────────────────────────────────────────────
 class LicenseState:
-    """States mirror the server's Status enum exactly so there is no
-    impedance mismatch between what the server sends and what the SDK
-    stores. The only SDK-internal state that has no server counterpart
-    is PENDING_VALIDATION (the cold-start sentinel)."""
-    # Server reports the license was created but not activated yet.
+    """States mirror the server's Status enum exactly.
+    PENDING_VALIDATION is the only SDK-internal state (cold-start sentinel)."""
     PENDING = "PENDING"
-    # License is valid and active — the only state that lets traffic through.
     ACTIVE = "ACTIVE"
-    # License has passed its expiry date.
     EXPIRED = "EXPIRED"
-    # License was explicitly revoked by the developer.
     REVOKED = "REVOKED"
-    # Internal SDK sentinel: set on startup before the first successful
-    # response from the license server. Requests are BLOCKED in this state.
     PENDING_VALIDATION = "pending_validation"
 
 
-# States that definitively indicate the license is not usable.
-# Requests are blocked (HTTP 402) whenever the current state is in this set.
-_INACTIVE_STATES = {LicenseState.EXPIRED, LicenseState.REVOKED, LicenseState.PENDING}
+# Bug 1 fix: server statuses that must always map to REVOKED (fail-closed).
+# Previously these fell into the "unrecognised → keep state" branch, leaving
+# an already-ACTIVE app permanently unlocked after the server denied the license.
+_HARD_REVOKE_STATUSES: set[str] = {
+    "invalid",
+    "machine_mismatch",
+    "instance_mismatch",
+    "unknown",
+}
 
-# Paths that should never be blocked by the license guard. Customers
-# can extend this list via the `bypass_paths` option to
-# protect_fastapi_app.
-DEFAULT_BYPASS_PATHS = {"/health", "/license/status"}
+# States that block requests (HTTP 402).
+_INACTIVE_STATES: set[str] = {
+    LicenseState.EXPIRED,
+    LicenseState.REVOKED,
+    LicenseState.PENDING,
+}
+
+# Paths that bypass the guard regardless of state.
+DEFAULT_BYPASS_PATHS: set[str] = {"/health", "/license/status"}
+
+# Daemon revalidation interval.
+VALIDATION_INTERVAL_SECONDS = 900
 
 
+# ── Bypass path matching ──────────────────────────────────────────────────────
 def _matches_bypass(pathname: str, bypass_paths: set) -> bool:
     if not pathname:
         return False
     for pattern in bypass_paths:
         if pattern == pathname:
             return True
-        # Prefix match: "/license" matches "/license/renew", etc.
         if pattern.endswith("/") and pathname.startswith(pattern):
             return True
         if not pattern.endswith("/") and pathname.startswith(pattern + "/"):
@@ -69,51 +83,23 @@ def _matches_bypass(pathname: str, bypass_paths: set) -> bool:
     return False
 
 
-def get_license_state() -> str:
-    """Return the current license state as a string from `LicenseState`."""
-    with _state_lock:
-        return _last_state
+# ── Logging ───────────────────────────────────────────────────────────────────
+def log(level: str, message: str, meta: dict | None = None) -> None:
+    time_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+    meta_str = f"  {meta}" if meta else ""
+    print(f"[{time_str}] [KEYBOX] [{level.upper()}] {message}{meta_str}", flush=True)
 
 
-def set_license_state(state: str) -> None:
-    """Update the in-memory license state. Validates the input; logs
-    and ignores anything outside `LicenseState`."""
-    allowed = {
-        LicenseState.PENDING,
-        LicenseState.ACTIVE,
-        LicenseState.EXPIRED,
-        LicenseState.REVOKED,
-        LicenseState.PENDING_VALIDATION,
-    }
-    if state not in allowed:
-        log("WARN", "Ignoring invalid license state", {"state": state, "allowed": list(allowed)})
-        return
-    with _state_lock:
-        global _last_state
-        _last_state = state
-
-
-# --------------------
-# Errors
-# --------------------
-
+# ── Errors ────────────────────────────────────────────────────────────────────
 class LicenseAlreadyActivatedError(RuntimeError):
     """Raised when the server confirms the license is already bound to a
-    different (machineId, instanceId) pair. Consumers can catch this to
-    show a friendlier message and avoid persisting any local state."""
-
+    different (machineId, instanceId) pair."""
     def __init__(self, message: str):
         super().__init__(message)
         self.code = "LICENSE_ALREADY_ACTIVATED"
 
 
-# --------------------
-# Per-instance UUID
-# --------------------
-
-# Read the on-disk id if it exists. We deliberately do NOT generate +
-# persist on the first call — the id is only written to disk after the
-# server confirms activation.
+# ── Instance ID storage ───────────────────────────────────────────────────────
 def _read_stored_instance_id() -> str | None:
     file_path = os.path.join(os.getcwd(), ".instance-id")
     if not os.path.exists(file_path):
@@ -126,20 +112,15 @@ def _read_stored_instance_id() -> str | None:
         return None
 
 
-# Persist the given id to <cwd>/.instance-id. Uses an exclusive-create
-# flag so a concurrent process can't clobber its own id with ours.
 def _persist_instance_id(value: str) -> None:
     file_path = os.path.join(os.getcwd(), ".instance-id")
     try:
-        # 'x' = exclusive create — don't clobber an existing file
+        # 'x' = exclusive create — won't clobber an existing file
         with open(file_path, "x", encoding="utf-8") as f:
             f.write(value)
     except FileExistsError:
-        # Someone (another instance, or a previous successful run) already
-        # wrote a file. Leave it as-is.
         return
     except OSError as e:
-        # Other I/O error — re-read to confirm what's on disk.
         existing = _read_stored_instance_id()
         if existing != value:
             log("WARN", "Could not persist .instance-id; keeping existing value", {
@@ -152,29 +133,47 @@ def _candidate_instance_id() -> str:
     return _read_stored_instance_id() or uuid.uuid4().hex
 
 
-# --------------------
-# Status check
-# --------------------
+# ── Public state accessor ─────────────────────────────────────────────────────
+def get_license_state() -> str:
+    """Return the current license state string."""
+    with _state_lock:
+        return _last_state
 
-# Read-only check: ask the server whether the license is already
-# activated for the (machineId, instanceId) we'd be sending. Returns a
-# dict with `active=True` ONLY when the server says `valid: true` AND
-# status == "active" for the stored instance id. Callers use this to
-# decide whether activation is actually needed on cold start.
+
+# Bug 12 fix: set_license_state is no longer public.
+# Exposing it made enforcement trivially bypassable.
+# State is now only mutated by validated server responses.
+def _set_license_state(state: str) -> None:
+    global _last_state
+    with _state_lock:
+        _last_state = state
+
+
+# ── Safe callback helper ──────────────────────────────────────────────────────
+# Bug 10 fix: callbacks are wrapped so exceptions never crash the daemon.
+def _fire_callback(cb, data) -> None:
+    if not cb:
+        return
+    try:
+        cb(data)
+    except Exception as e:
+        log("WARN", "License callback threw", {"error": str(e)})
+
+
+# ── Check license status ──────────────────────────────────────────────────────
 def check_license_status(
     *,
     product_name: str,
     key: str,
-    api_url: str = "https://api-keybox.vercel.app",
+    api_url: str = "http://localhost:5000",
     endpoint: str = "/validate",
+    request_timeout: int = 10,
 ) -> dict:
+    """Read-only check — does not activate. Returns {status, active, data}."""
     if not product_name or not key:
         raise ValueError("product_name and key are required")
 
     instance_id = _read_stored_instance_id()
-
-    # No .instance-id on disk → never activated from this app, so
-    # there's nothing the server can confirm. Caller should activate.
     if not instance_id:
         return {"status": "not_activated", "active": False, "data": None}
 
@@ -182,51 +181,51 @@ def check_license_status(
 
     res = requests.post(
         f"{api_url}{endpoint}",
-        json={"key": key, "productName": product_name, "instanceId": instance_id},
-        timeout=15,
+        json={
+            "key": key,
+            "productName": product_name,
+            "instanceId": instance_id,
+            "machineId": _get_machine_id(),  # Bug 2 fix
+        },
+        timeout=request_timeout,
     )
 
     if "application/json" not in res.headers.get("content-type", ""):
         raise RuntimeError("License server did not return JSON")
 
     data = res.json()
-    status = (data.get("status") or "").upper()
-    is_active = data.get("valid") is True and status == "ACTIVE"
+    raw_status = data.get("status") if isinstance(data.get("status"), str) else ""
+    status_upper = raw_status.upper()
+    is_active = data.get("valid") is True and status_upper == "ACTIVE"
 
-    return {"status": status, "active": is_active, "data": data}
-
-
-# --------------------
-# Logger
-# --------------------
-
-def log(level: str, message: str, meta: dict | None = None):
-    time_str = datetime.utcnow().isoformat()
-    print(f"[{time_str}] [KEYBOX] [{level}] {message}", meta or "")
+    return {"status": status_upper, "active": is_active, "data": data}
 
 
-# --------------------
-# Activation
-# --------------------
-
+# ── Activate license ──────────────────────────────────────────────────────────
 def activate_license(
     *,
     product_name: str,
     key: str,
-    api_url: str = "https://api-keybox.vercel.app",
+    api_url: str = "http://localhost:5000",
     endpoint: str = "/validate/activate",
+    request_timeout: int = 10,
 ):
+    """Activate a license key and persist the instance ID to .instance-id."""
     if not product_name or not key:
         raise ValueError("product_name and key are required")
 
     instance_id = _candidate_instance_id()
-
     log("INFO", "Activating license", {"product_name": product_name})
 
     res = requests.post(
         f"{api_url}{endpoint}",
-        json={"key": key, "productName": product_name, "instanceId": instance_id},
-        timeout=15,
+        json={
+            "key": key,
+            "productName": product_name,
+            "instanceId": instance_id,
+            "machineId": _get_machine_id(),  # Bug 2 fix
+        },
+        timeout=request_timeout,
     )
 
     if "application/json" not in res.headers.get("content-type", ""):
@@ -234,48 +233,50 @@ def activate_license(
 
     data = res.json()
 
-    if not res.ok or not data.get("success"):
+    # Bug 7 fix: require success is True explicitly — missing field or {} is rejected.
+    if not res.ok or data.get("success") is not True:
         message = data.get("message") or "License activation failed"
 
-        # Distinguish "bound to a different instance" from generic failure
-        # so the consuming app can show a clearer message.
-        if res.status_code == 403 and "another instance" in message.lower():
+        log("ERROR", "License server rejected activation", {
+            "http_status": res.status_code,
+            "server_message": message,
+        })
+
+        if (
+            res.status_code == 403
+            and isinstance(message, str)
+            and re.search(
+                r"another\s+(instance|device|machine)|already\s+(activated|active|bound)",
+                message,
+                re.IGNORECASE,
+            )
+        ):
             raise LicenseAlreadyActivatedError(message)
 
         raise RuntimeError(message)
 
-    # Server accepted this (machineId, instanceId) pair. Safe to commit
-    # the id to disk now — only on a real success do we make it sticky.
     if not _read_stored_instance_id():
         _persist_instance_id(instance_id)
 
-    log("INFO", "License activated", {
-        "status": data.get("status"),
-        "expiresAt": data.get("expiresAt"),
-    })
-
+    log("SUCCESS", "License activated")
     return data
 
 
-# --------------------
-# Background Daemon
-# --------------------
-
+# ── Background daemon ─────────────────────────────────────────────────────────
 def start_license_daemon(
     *,
     product_name: str,
     key: str,
-    api_url: str = "https://api-keybox.vercel.app",
+    api_url: str = "http://localhost:5000",
     endpoint: str = "/validate",
-    on_start=None,
-    on_stop=None,
+    on_revoke=None,
     on_recover=None,
-    # Override the daemon's poll interval (default 900s / 15 minutes).
-    # Useful for tests and for customers who want a different cadence.
-    # Must be a positive integer.
     interval_seconds: int = VALIDATION_INTERVAL_SECONDS,
-):
-    global interval_thread
+    request_timeout: int = 10,
+    offline_grace_seconds: int | None = None,
+) -> None:
+    """Start the background validation daemon in a daemon thread."""
+    global _interval_thread, _last_state, _is_validating, _last_successful_validation
 
     if not product_name or not key:
         raise ValueError("product_name and key are required")
@@ -283,155 +284,196 @@ def start_license_daemon(
     if not isinstance(interval_seconds, int) or interval_seconds <= 0:
         raise ValueError("interval_seconds must be a positive integer")
 
-    # Daemon is read-only: never generate a new id here. If none is on
-    # disk and none was bound by an earlier activation, every /validate
-    # call would 400 (server requires instanceId) — that's the right
-    # signal: the user must run activation first.
-    instance_id = _read_stored_instance_id()
+    # Bug 8: offline grace defaults to max(2 × interval, 1800 s)
+    offline_grace = (
+        offline_grace_seconds
+        if offline_grace_seconds is not None
+        else max(interval_seconds * 2, 1800)
+    )
 
-    def validate_once():
-        global _last_state
+    def validate_once() -> None:
+        global _last_state, _is_validating, _last_successful_validation
+
+        # Bug 6: overlap guard — skip tick if previous is still in flight
         with _state_lock:
-            previous_state = _last_state
-
-        log("INFO", "Validating license", {"product_name": product_name})
-
-        if not instance_id:
-            log("WARN", "No .instance-id on disk — run activation first")
-            return
+            if _is_validating:
+                log("INFO", "Skipping validation tick — previous check still in progress")
+                return
+            _is_validating = True
 
         try:
+            # Bug 4 fix: re-read instanceId on every tick.
+            # The original code captured it once at daemon startup, so a
+            # failed activation left it permanently null with no retry path.
+            instance_id = _read_stored_instance_id()
+
+            if not instance_id:
+                with _state_lock:
+                    current = _last_state
+
+                if current == LicenseState.PENDING_VALIDATION:
+                    log("WARN", "No .instance-id on disk — retrying activation")
+                    try:
+                        activate_license(
+                            product_name=product_name,
+                            key=key,
+                            api_url=api_url,
+                            request_timeout=request_timeout,
+                        )
+                        instance_id = _read_stored_instance_id()
+                    except Exception as activation_err:
+                        log("WARN", "Activation retry failed", {"error": str(activation_err)})
+
+                if not instance_id:
+                    log("WARN", "No .instance-id on disk — skipping validation")
+                    return
+
+            log("INFO", "Validating license", {"product_name": product_name})
+
             res = requests.post(
                 f"{api_url}{endpoint}",
-                json={"key": key, "productName": product_name, "instanceId": instance_id},
-                timeout=15,
+                json={
+                    "key": key,
+                    "productName": product_name,
+                    "instanceId": instance_id,
+                    "machineId": _get_machine_id(),  # Bug 2 fix
+                },
+                timeout=request_timeout,
             )
 
+            # 429 / 5xx: transient — keep current state
+            if res.status_code == 429 or res.status_code >= 500:
+                with _state_lock:
+                    current = _last_state
+                log("WARN", "Transient server response — keeping current state", {
+                    "http_status": res.status_code,
+                    "current_state": current,
+                })
+                return
+
             if "application/json" not in res.headers.get("content-type", ""):
-                raise RuntimeError("License server did not return JSON")
+                raise RuntimeError("Non-JSON response from license server")
 
             data = res.json()
-            valid = data.get("valid", False)
-            # Coerce defensively: server may return status as a non-string.
-            # Compare uppercase to match the server's Status enum.
-            status_upper = (data.get("status") or "").upper()
+            raw_status = data.get("status") if isinstance(data.get("status"), str) else ""
+            status_upper = raw_status.upper()
 
-            # Translate server status into our internal LicenseState.
-            # Valid server statuses: PENDING, ACTIVE, EXPIRED, REVOKED.
-            # Any unrecognised response is a transient error — keep the
-            # last known state instead of blocking or going to UNKNOWN.
-            if valid and status_upper == LicenseState.ACTIVE:
-                next_state = LicenseState.ACTIVE
-            elif status_upper == LicenseState.REVOKED:
+            with _state_lock:
+                previous_state = _last_state
+
+            # Bug 1 fix: hard-fail statuses → REVOKED (fail-closed)
+            if raw_status.lower() in _HARD_REVOKE_STATUSES:
                 next_state = LicenseState.REVOKED
-            elif status_upper == LicenseState.EXPIRED:
+                log("WARN", "License validation returned hard-fail status — revoking", {
+                    "server_status": raw_status,
+                })
+            elif data.get("valid") is True and status_upper == "ACTIVE":
+                next_state = LicenseState.ACTIVE
+                _last_successful_validation = time.monotonic()  # Bug 8: update grace timestamp
+            elif status_upper == "REVOKED":
+                next_state = LicenseState.REVOKED
+            elif status_upper == "EXPIRED":
                 next_state = LicenseState.EXPIRED
-            elif status_upper == LicenseState.PENDING:
+            elif status_upper == "PENDING":
                 next_state = LicenseState.PENDING
             else:
-                # Unrecognised response — do NOT change state.
                 log("WARN", "Unrecognised license server response — keeping current state", {
                     "current_state": previous_state,
-                    "server_status": data.get("status"),
-                    "server_valid": valid,
+                    "server_status": raw_status,
+                    "server_valid": data.get("valid"),
                 })
                 return
 
             if next_state != previous_state:
                 if next_state == LicenseState.ACTIVE:
                     log("INFO", "License state changed to ACTIVE — requests will be accepted", {
-                        "from": previous_state,
-                        "to": next_state,
+                        "from": previous_state, "to": next_state,
                     })
                 elif next_state in _INACTIVE_STATES:
                     log("ERROR", f"License state changed to {next_state} — requests will be rejected with 402", {
-                        "from": previous_state,
-                        "to": next_state,
+                        "from": previous_state, "to": next_state,
                         "server_message": data.get("message"),
                     })
                 else:
                     log("INFO", f"License state changed to {next_state}", {
-                        "from": previous_state,
-                        "to": next_state,
+                        "from": previous_state, "to": next_state,
                     })
 
                 with _state_lock:
                     _last_state = next_state
 
-                # Fire the appropriate callback.
+                # Bug 10 fix: callbacks wrapped, fired consistently
                 if next_state in _INACTIVE_STATES and previous_state not in _INACTIVE_STATES:
-                    on_stop and on_stop(data)
+                    _fire_callback(on_revoke, data)
                 elif next_state == LicenseState.ACTIVE and previous_state in _INACTIVE_STATES:
-                    on_recover and on_recover(data)
-                elif next_state == LicenseState.ACTIVE:
-                    on_start and on_start(data)
+                    _fire_callback(on_recover, data)
 
         except Exception as e:
-            log("WARN", "License check failed — keeping app running", {"error": str(e)})
+            log("WARN", "License check failed — keeping current state", {"error": str(e)})
 
-            # Network/protocol failure on startup: transition out of
-            # PENDING_VALIDATION so the guard definitively blocks requests.
             with _state_lock:
-                previous_state = _last_state
-                if previous_state == LicenseState.PENDING_VALIDATION:
+                current = _last_state
+
+            if current == LicenseState.PENDING_VALIDATION:
+                # Cold-start failure: block immediately
+                with _state_lock:
                     _last_state = LicenseState.REVOKED
-                    entered_inactive = True
-                else:
-                    entered_inactive = False
-
-            if previous_state == LicenseState.PENDING_VALIDATION:
-                log(
-                    "ERROR",
-                    "License daemon could not reach the server on startup — requests will be rejected with 402 until the server is reachable",
-                    {"from": LicenseState.PENDING_VALIDATION, "to": LicenseState.REVOKED},
-                )
-
-            if entered_inactive:
-                on_stop and on_stop({
-                    "valid": False,
-                    "status": LicenseState.REVOKED,
-                    "message": str(e),
+                log("ERROR", "License daemon could not reach the server on startup — requests will be rejected with 402", {
+                    "from": LicenseState.PENDING_VALIDATION,
+                    "to": LicenseState.REVOKED,
                 })
+                # Bug 10 fix: fire on_revoke for cold-start failures too
+                _fire_callback(on_revoke, None)
 
-    def loop():
+            elif current == LicenseState.ACTIVE and _last_successful_validation is not None:
+                # Bug 8 fix: bounded offline grace period
+                elapsed = time.monotonic() - _last_successful_validation
+                if elapsed > offline_grace:
+                    log("ERROR", "Offline grace period exceeded — blocking requests", {
+                        "grace_seconds": offline_grace,
+                        "elapsed_seconds": round(elapsed),
+                    })
+                    with _state_lock:
+                        _last_state = LicenseState.REVOKED
+                    _fire_callback(on_revoke, None)
+                else:
+                    log("WARN", "Network failure — within offline grace period", {
+                        "elapsed_seconds": round(elapsed),
+                        "grace_seconds": offline_grace,
+                    })
+
+        finally:
+            # Bug 6: always release the overlap guard, even on exception
+            with _state_lock:
+                _is_validating = False
+
+    def _loop() -> None:
         validate_once()
-        while not stop_event.wait(interval_seconds):
+        while not _stop_event.wait(interval_seconds):
             validate_once()
 
-    stop_event.clear()
-    interval_thread = threading.Thread(target=loop, daemon=True)
-    interval_thread.start()
+    _stop_event.clear()
+    _interval_thread = threading.Thread(target=_loop, daemon=True)
+    _interval_thread.start()
 
     log("INFO", "License daemon started", {"interval_seconds": interval_seconds})
 
 
-def stop_license_daemon():
-    stop_event.set()
+def stop_license_daemon() -> None:
+    """Signal the daemon thread to stop after its current tick completes."""
+    _stop_event.set()
     log("INFO", "License daemon stopped")
 
 
-# --------------------
-# FastAPI License Guard
-# --------------------
-
+# ── FastAPI license guard ─────────────────────────────────────────────────────
 def license_guard(bypass_paths=None):
-    """Return a FastAPI dependency that rejects every request with
-    HTTP 402 when the current license state is not VALID.
-
-    Read-only — never mutates state. Customers can mount this as a
-    dependency on individual routes or globally via FastAPI middleware.
-    `protect_fastapi_app` registers it as middleware automatically.
-
-    `bypass_paths` is an optional set of path prefixes that skip the
-    guard (defaults are `/health` and `/license/status`, always included).
-    """
+    """Return a FastAPI middleware coroutine that returns HTTP 402 when the
+    license is not ACTIVE. /health and /license/status are always bypassed."""
     try:
         from fastapi import Request
         from fastapi.responses import JSONResponse
     except ImportError:
-        raise ImportError(
-            "license_guard requires FastAPI. `pip install fastapi` to use it."
-        )
+        raise ImportError("license_guard requires FastAPI — pip install fastapi")
 
     allowed_paths = set(DEFAULT_BYPASS_PATHS)
     if bypass_paths:
@@ -439,11 +481,6 @@ def license_guard(bypass_paths=None):
 
     async def _guard(request: Request):
         state = get_license_state()
-        # Only ACTIVE lets traffic through. All other states —
-        # PENDING_VALIDATION (cold start), PENDING (not yet activated),
-        # REVOKED, EXPIRED — result in a 402. There is no UNKNOWN state:
-        # transient/unrecognised server responses keep the previous
-        # state rather than transitioning to a synthetic blocking state.
         if state == LicenseState.ACTIVE:
             return None
         if _matches_bypass(request.url.path, allowed_paths):
@@ -453,45 +490,43 @@ def license_guard(bypass_paths=None):
             content={
                 "error": "LICENSE_INACTIVE",
                 "state": state,
-                "message": "Please pay your developer",
-                "renewContact": "support@keybox.dev",
+                "message": "Go pay your developer",
             },
         )
 
     return _guard
 
 
-# --------------------
-# FastAPI Protector
-# --------------------
-
+# ── FastAPI protector (main entry point) ──────────────────────────────────────
 def protect_fastapi_app(
     *,
     app,
     product_name: str,
     key: str,
-    api_url: str = "https://api-keybox.vercel.app",
+    api_url: str = "http://localhost:5000",
     bypass_paths=None,
-):
+    on_revoke=None,
+    on_recover=None,
+    interval_seconds: int = VALIDATION_INTERVAL_SECONDS,
+    request_timeout: int = 10,
+    offline_grace_seconds: int | None = None,
+) -> None:
+    """Register the license guard and daemon on a FastAPI application.
+
+    Activates the license on first run, registers the request guard as
+    middleware, and starts/stops the daemon with the application lifecycle.
+    """
     from fastapi import FastAPI
 
-    if not app or not isinstance(app, FastAPI):
+    if not isinstance(app, FastAPI):
         raise ValueError("FastAPI app instance is required")
 
-    # Avoid duplicate activation on cold start: if the server already
-    # confirms this (machineId, instanceId) is active, skip the
-    # /validate/activate call entirely and go straight to the daemon.
-    #
-    # We deliberately do NOT raise on activation failure. If the
-    # license is already revoked, the server will refuse to activate
-    # — but the app should still come up so the guard can serve 402
-    # responses and so that, once the customer pays, the next daemon
-    # tick flips state back to VALID without a restart.
     try:
         status = check_license_status(
             product_name=product_name,
             key=key,
             api_url=api_url,
+            request_timeout=request_timeout,
         )
         if status["active"]:
             log("INFO", "License already active on this instance — skipping activation", {
@@ -503,6 +538,7 @@ def protect_fastapi_app(
                 product_name=product_name,
                 key=key,
                 api_url=api_url,
+                request_timeout=request_timeout,
             )
     except LicenseAlreadyActivatedError as e:
         log("ERROR", "License is already activated on another device. Requests will be rejected with 402 until this is resolved.", {
@@ -513,9 +549,6 @@ def protect_fastapi_app(
             "reason": str(e),
         })
 
-    # Register the guard as middleware FIRST so customer routes are
-    # protected automatically. The guard is read-only; the daemon just
-    # feeds the state manager. No process kill on inactive state.
     guard = license_guard(bypass_paths=bypass_paths)
     app.middleware("http")(guard)
 
@@ -525,13 +558,11 @@ def protect_fastapi_app(
             product_name=product_name,
             key=key,
             api_url=api_url,
-            on_start=lambda _: log("INFO", "App unlocked"),
-            on_stop=lambda data: log(
-                "ERROR",
-                f"License {data.get('status', 'invalid').upper()} — requests will be rejected with 402",
-                data,
-            ),
-            on_recover=lambda _: log("INFO", "License recovered — requests resumed"),
+            on_revoke=on_revoke,
+            on_recover=on_recover,
+            interval_seconds=interval_seconds,
+            request_timeout=request_timeout,
+            offline_grace_seconds=offline_grace_seconds,
         )
 
     @app.on_event("shutdown")

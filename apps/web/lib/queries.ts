@@ -49,14 +49,58 @@ export const useCreateProject = () => {
        });
 };
 
+const flipLicenseStatus = (clients: any, key: string) => {
+       if (!Array.isArray(clients)) return clients;
+
+       return clients.map((client: any) => ({
+              ...client,
+              projects: client.projects?.map((project: any) => ({
+                     ...project,
+                     licenses: project.licenses?.map((license: any) =>
+                            license.key === key
+                                   ? {
+                                          ...license,
+                                          status:
+                                                 license.status === "ACTIVE"
+                                                        ? "REVOKED"
+                                                        : "ACTIVE",
+                                   }
+                                   : license,
+                     ),
+              })),
+       }));
+};
+
 export const useToggleLicense = () => {
        const qc = useQueryClient();
 
        return useMutation({
               mutationFn: async (key: string) => {
-                     await api.patch(`/license/revoke/${key}`);
+                     const { data } = await api.patch(
+                            `/license/revoke/${key}`,
+                     );
+                     return data;
               },
-              onSuccess: () =>
+              onMutate: async (key: string) => {
+                     await qc.cancelQueries({ queryKey: ["dashboard"] });
+
+                     const previous = qc.getQueryData(["dashboard"]);
+
+                     qc.setQueryData(["dashboard"], (old: any) =>
+                            flipLicenseStatus(old, key),
+                     );
+
+                     return { previous };
+              },
+              onError: (_err, _key, context) => {
+                     if (context?.previous) {
+                            qc.setQueryData(
+                                   ["dashboard"],
+                                   context.previous,
+                            );
+                     }
+              },
+              onSettled: () =>
                      qc.invalidateQueries({ queryKey: ["dashboard"] }),
        });
 };
