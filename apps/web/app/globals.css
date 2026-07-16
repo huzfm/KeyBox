@@ -262,19 +262,99 @@
 @layer utilities {
   /* Infinite horizontal scroll */
   @keyframes scroll-x {
-    0% {
-      transform: translateX(0);
-    }
-    100% {
-      transform: translateX(-50%);
-    }
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .animate-scroll { animation: scroll-x 15s linear infinite; }
+  .animate-scroll:hover { animation-play-state: paused; }
+
+  /* ── Aurora hero orbs ── */
+  @keyframes aurora-drift-1 {
+    0%, 100% { transform: translate(0px,   0px)  scale(1);    }
+    25%       { transform: translate(60px, -80px) scale(1.2);  }
+    50%       { transform: translate(-40px, 50px) scale(0.9);  }
+    75%       { transform: translate(30px,  25px) scale(1.1);  }
+  }
+  @keyframes aurora-drift-2 {
+    0%, 100% { transform: translate(0px,   0px)  scale(1);    }
+    33%      { transform: translate(-70px, 40px) scale(1.15); }
+    66%      { transform: translate(50px, -60px) scale(0.85); }
+  }
+  @keyframes aurora-drift-3 {
+    0%, 100% { transform: translate(0px,   0px)  scale(1);   }
+    40%      { transform: translate(40px,  70px) scale(1.1); }
+    80%      { transform: translate(-60px,-30px) scale(0.95);}
+  }
+  .aurora-orb-1 { animation: aurora-drift-1 20s ease-in-out infinite; }
+  .aurora-orb-2 { animation: aurora-drift-2 26s ease-in-out infinite; }
+  .aurora-orb-3 { animation: aurora-drift-3 18s ease-in-out infinite; }
+
+  /* ── CTA border beam (spinning conic-gradient) ── */
+  @keyframes spin-slow {
+    from { transform: rotate(0deg)   scale(3); }
+    to   { transform: rotate(360deg) scale(3); }
+  }
+  .animate-spin-slow { animation: spin-slow 8s linear infinite; }
+
+  /* ── Subtle vertical float ── */
+  @keyframes float-y {
+    0%, 100% { transform: translateY(0px);   }
+    50%      { transform: translateY(-10px); }
+  }
+  .animate-float { animation: float-y 5s ease-in-out infinite; }
+
+  /* ── Shimmer sweep ── */
+  @keyframes shimmer-sweep {
+    0%   { background-position: -200% center; }
+    100% { background-position:  200% center; }
+  }
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent);
+    background-size: 200% auto;
+    animation: shimmer-sweep 3s linear infinite;
   }
 
-  .animate-scroll {
-    animation: scroll-x 15s linear infinite;
+  /* ── Ping dot ── */
+  @keyframes ping-slow {
+    0%       { transform: scale(1);   opacity: 0.8; }
+    80%, 100% { transform: scale(2.2); opacity: 0; }
+  }
+  .animate-ping-slow { animation: ping-slow 2s cubic-bezier(0, 0, 0.2, 1) infinite; }
+
+  /* ── Hero noise texture ── */
+  .hero-noise {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 200px 200px;
+    mix-blend-mode: overlay;
   }
 
-  .animate-scroll:hover {
-    animation-play-state: paused;
+  /* ── Animated gradient headline ── */
+  @keyframes gradient-pan {
+    0%   { background-position: 0%   50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0%   50%; }
+  }
+  .hero-gradient-text {
+    background: linear-gradient(
+      110deg,
+      #c4b5fd 0%,
+      #a78bfa 18%,
+      #ffffff  38%,
+      #818cf8 58%,
+      #c084fc 78%,
+      #c4b5fd 100%
+    );
+    background-size: 280% 280%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradient-pan 4s ease infinite;
+  }
+
+  /* ── License card toggle ── */
+  .toggle-on {
+    background: linear-gradient(to right, #059669, #34d399);
+    box-shadow: 0 0 14px rgba(52, 211, 153, 0.45);
   }
 }

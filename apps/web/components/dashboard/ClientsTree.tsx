@@ -11,6 +11,21 @@ import {
        AccordionTrigger,
 } from "@/components/ui/accordion";
 import {
+       Dialog,
+       DialogContent,
+       DialogDescription,
+       DialogFooter,
+       DialogHeader,
+       DialogTitle,
+} from "@/components/ui/dialog";
+import {
+       Select,
+       SelectContent,
+       SelectItem,
+       SelectTrigger,
+       SelectValue,
+} from "@/components/ui/select";
+import {
        CheckCircle2,
        XCircle,
        AlertCircle,
@@ -22,6 +37,7 @@ import {
        Copy,
        Check,
        CreditCard,
+       RefreshCw,
 } from "lucide-react";
 
 type LicenseStatus = "ACTIVE" | "PENDING" | "REVOKED" | "EXPIRED";
@@ -52,15 +68,25 @@ interface Client {
 interface ClientsTreeProps {
        clients: Client[];
        onToggle: (key: string) => void | Promise<void>;
+       onRenew: (key: string, duration: number) => void | Promise<void>;
 }
 
-export default function ClientsTree({ clients, onToggle }: ClientsTreeProps) {
+const RENEWAL_DURATIONS = [1, 3, 6, 12];
+
+export default function ClientsTree({
+       clients,
+       onToggle,
+       onRenew,
+}: ClientsTreeProps) {
        const [isTogglingKey, setIsTogglingKey] = useState<string | null>(null);
+       const [isRenewingKey, setIsRenewingKey] = useState<string | null>(null);
        const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>(
               {},
        );
        const [copiedKey, setCopiedKey] = useState<string | null>(null);
        const [billingClient, setBillingClient] = useState<Client | null>(null);
+       const [renewTarget, setRenewTarget] = useState<License | null>(null);
+       const [renewDuration, setRenewDuration] = useState("6");
 
        const handleToggle = async (licenseKey: string) => {
               setIsTogglingKey(licenseKey);
@@ -68,6 +94,23 @@ export default function ClientsTree({ clients, onToggle }: ClientsTreeProps) {
                      await onToggle(licenseKey);
               } finally {
                      setIsTogglingKey(null);
+              }
+       };
+
+       const openRenewDialog = (license: License) => {
+              setRenewTarget(license);
+              setRenewDuration(String(license.duration || 6));
+       };
+
+       const handleConfirmRenew = async () => {
+              if (!renewTarget) return;
+              const licenseKey = renewTarget.key;
+              setRenewTarget(null);
+              setIsRenewingKey(licenseKey);
+              try {
+                     await onRenew(licenseKey, Number(renewDuration));
+              } finally {
+                     setIsRenewingKey(null);
               }
        };
 
@@ -573,6 +616,32 @@ export default function ClientsTree({ clients, onToggle }: ClientsTreeProps) {
                                                                                                                                                                                       )}
                                                                                                                                                                                </span>
                                                                                                                                                                         </button>
+                                                                                                                                                                 ) : license.status ===
+                                                                                                                                                                   "EXPIRED" ? (
+                                                                                                                                                                        <Button
+                                                                                                                                                                               size="sm"
+                                                                                                                                                                               variant="outline"
+                                                                                                                                                                               onClick={() =>
+                                                                                                                                                                                      openRenewDialog(
+                                                                                                                                                                                             license,
+                                                                                                                                                                                      )
+                                                                                                                                                                               }
+                                                                                                                                                                               disabled={
+                                                                                                                                                                                      isRenewingKey ===
+                                                                                                                                                                                      license.key
+                                                                                                                                                                               }
+                                                                                                                                                                               className="h-8 bg-transparent border-amber-500/40 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+                                                                                                                                                                        >
+                                                                                                                                                                               <RefreshCw
+                                                                                                                                                                                      className={`h-3.5 w-3.5 mr-2 ${
+                                                                                                                                                                                             isRenewingKey ===
+                                                                                                                                                                                             license.key
+                                                                                                                                                                                                    ? "animate-spin"
+                                                                                                                                                                                                    : ""
+                                                                                                                                                                                      }`}
+                                                                                                                                                                               />
+                                                                                                                                                                               Renew
+                                                                                                                                                                        </Button>
                                                                                                                                                                  ) : (
                                                                                                                                                                         <div className="inline-flex items-center gap-2">
                                                                                                                                                                                <span
@@ -581,10 +650,7 @@ export default function ClientsTree({ clients, onToggle }: ClientsTreeProps) {
                                                                                                                                                                                       <span className="pointer-events-none inline-block h-5 w-5 translate-x-0.5 rounded-full bg-slate-400 shadow" />
                                                                                                                                                                                </span>
                                                                                                                                                                                <span className="text-xs text-slate-500">
-                                                                                                                                                                                      {license.status ===
-                                                                                                                                                                                      "PENDING"
-                                                                                                                                                                                             ? "Pending"
-                                                                                                                                                                                             : "Expired"}
+                                                                                                                                                                                      Pending
                                                                                                                                                                                </span>
                                                                                                                                                                         </div>
                                                                                                                                                                  )}
@@ -631,6 +697,79 @@ export default function ClientsTree({ clients, onToggle }: ClientsTreeProps) {
                                    !open && setBillingClient(null)
                             }
                      />
+
+                     <Dialog
+                            open={!!renewTarget}
+                            onOpenChange={(open) =>
+                                   !open && setRenewTarget(null)
+                            }
+                     >
+                            <DialogContent className="sm:max-w-[400px] bg-neutral-950 text-white">
+                                   <DialogHeader>
+                                          <DialogTitle className="text-xl">
+                                                 Renew License
+                                          </DialogTitle>
+                                          <DialogDescription className="text-slate-400">
+                                                 Choose how long to extend this
+                                                 license for.
+                                          </DialogDescription>
+                                   </DialogHeader>
+
+                                   <div className="space-y-2 py-2">
+                                          <span className="text-xs text-slate-400">
+                                                 Duration
+                                          </span>
+                                          <Select
+                                                 value={renewDuration}
+                                                 onValueChange={
+                                                        setRenewDuration
+                                                 }
+                                          >
+                                                 <SelectTrigger className="bg-muted/50 border-border/50">
+                                                        <SelectValue placeholder="Select duration" />
+                                                 </SelectTrigger>
+                                                 <SelectContent className="bg-muted/50 border-border/50">
+                                                        {RENEWAL_DURATIONS.map(
+                                                               (months) => (
+                                                                      <SelectItem
+                                                                             key={
+                                                                                    months
+                                                                             }
+                                                                             value={String(
+                                                                                    months,
+                                                                             )}
+                                                                             className="focus:bg-slate-700 focus:text-white"
+                                                                      >
+                                                                             {
+                                                                                    months
+                                                                             }{" "}
+                                                                             month
+                                                                             {months !==
+                                                                             1
+                                                                                    ? "s"
+                                                                                    : ""}
+                                                                      </SelectItem>
+                                                               ),
+                                                        )}
+                                                 </SelectContent>
+                                          </Select>
+                                   </div>
+
+                                   <DialogFooter>
+                                          <Button
+                                                 onClick={handleConfirmRenew}
+                                                 className="w-full bg-blue-600 hover:bg-blue-700"
+                                          >
+                                                 <RefreshCw className="h-4 w-4 mr-2" />
+                                                 Renew for {renewDuration}{" "}
+                                                 month
+                                                 {renewDuration !== "1"
+                                                        ? "s"
+                                                        : ""}
+                                          </Button>
+                                   </DialogFooter>
+                            </DialogContent>
+                     </Dialog>
               </div>
        );
 }

@@ -1,73 +1,88 @@
-import Link from "next/link";
-import { Github, Twitter, KeyRound } from "lucide-react";
-import { cookies } from "next/headers";
+import Link from "next/link"
+import { Github, KeyRound } from "lucide-react"
+import { cookies } from "next/headers"
 
 export default async function HomeNavbar() {
-       const cookieStore = await cookies();
-       const isLoggedIn = cookieStore.get("jwt");
+	const cookieStore = await cookies()
+	const isLoggedIn = cookieStore.get("jwt")
 
-       return (
-              <header className="sticky top-0 z-50">
-                     <div
-                            className="
-          max-w-7xl mx-auto
-          flex items-center justify-between
-          px-4 py-3         
-          sm:px-8 sm:py-4
-          lg:px-60 lg:py-6    
-        "
-                     >
-                            {/* Logo Section */}
-                            <div className="flex items-center gap-2 ring-1 ring-white/20 bg-black rounded-2xl px-2 py-2 text-white shadow-md shadow-blue-500/20 hover:shadow-blue-500/40 transition-all duration-300">
-                                   <div className="w-8 h-8 flex items-center justify-center shrink-0 ">
-                                          <KeyRound className="w-7 h-7 text-white" />
-                                   </div>
-                                   <span className="text-lg sm:text-xl lg:text-2xl text-white font-bold truncate font-mono ">
-                                          KeyBox
-                                          <span className="text-xs font-semibold">
-                                                 {" "}
-                                                 v1.0.0
-                                          </span>
-                                   </span>
-                            </div>
+	return (
+		<header className="fixed top-0 left-0 right-0 z-50">
+			{/* Glassmorphism bar */}
+			<div className="mx-auto max-w-6xl mt-3 px-3">
+				<div className="flex items-center justify-between gap-4 rounded-2xl border border-white/[0.08] bg-black/60 backdrop-blur-xl px-4 py-2.5 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_8px_40px_rgba(0,0,0,0.4)]">
 
-                            {/* Navigation Section */}
-                            <div className="flex items-center gap-3 sm:gap-5">
-                                   <a
-                                          href="https://github.com/huzfm/keybox"
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-white transition"
-                                   >
-                                          <Github className="w-5 h-5" />
-                                   </a>
+					{/* Logo */}
+					<Link href="/" className="flex items-center gap-2 group shrink-0">
+						<div className="w-7 h-7 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center group-hover:bg-white/15 transition-colors duration-200">
+							<KeyRound className="w-4 h-4 text-white" />
+						</div>
+						<span className="font-bold font-mono text-white text-base tracking-tight">
+							KeyBox
+							<span className="text-[10px] font-medium text-zinc-500 ml-1">v1.0.0</span>
+						</span>
+					</Link>
 
-                                   <a
-                                          href="https://x.com/huzfm"
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-white transition"
-                                   >
-                                          <Twitter className="w-5 h-5" />
-                                   </a>
+					{/* Nav links */}
+					<nav className="hidden sm:flex items-center gap-1">
+						<Link
+							href="#how-it-works"
+							className="px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-white rounded-lg hover:bg-white/5 transition-all duration-150"
+						>
+							How it works
+						</Link>
+						<Link
+							href="/sdk-usage"
+							className="px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-white rounded-lg hover:bg-white/5 transition-all duration-150"
+						>
+							SDK Docs
+						</Link>
+						<a
+							href="https://github.com/huzfm/keybox"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-white rounded-lg hover:bg-white/5 transition-all duration-150 flex items-center gap-1.5"
+						>
+							<Github className="w-3.5 h-3.5" />
+							GitHub
+						</a>
+					</nav>
 
-                                   <Link
-                                          href={
-                                                 isLoggedIn
-                                                        ? "/dashboard"
-                                                        : "/login"
-                                          }
-                                          className="
-              px-3 py-1.5 sm:px-4 sm:py-2
-              text-xs sm:text-sm
-              font-medium text-white
-              bg-black border rounded-lg transition
-            "
-                                   >
-                                          {isLoggedIn ? "Dashboard" : "Login"}
-                                   </Link>
-                            </div>
-                     </div>
-              </header>
-       );
+					{/* Right actions */}
+					<div className="flex items-center gap-2 shrink-0">
+						{/* Mobile GitHub */}
+						<a
+							href="https://github.com/huzfm/keybox"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="sm:hidden p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-all"
+						>
+							<Github className="w-4 h-4" />
+						</a>
+
+						{isLoggedIn ? (
+							<Link href="/dashboard">
+								<button className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-black bg-white hover:bg-zinc-100 transition-colors duration-150 shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+									Dashboard
+								</button>
+							</Link>
+						) : (
+							<>
+								<Link href="/login">
+									<button className="px-3.5 py-1.5 rounded-xl text-xs font-medium text-zinc-300 hover:text-white border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all duration-150">
+										Log in
+									</button>
+								</Link>
+								<Link href="/signup">
+									<button className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-black bg-white hover:bg-zinc-100 transition-colors duration-150 shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+										Sign up
+									</button>
+								</Link>
+							</>
+						)}
+					</div>
+				</div>
+			</div>
+		</header>
+	)
 }
