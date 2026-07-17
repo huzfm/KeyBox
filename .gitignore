@@ -42,3 +42,6 @@ yarn-error.log*
 
 # Dotnet
 .vs/
+
+# Python build metadata
+*.egg-info/
