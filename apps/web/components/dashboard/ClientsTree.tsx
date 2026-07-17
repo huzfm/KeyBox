@@ -144,11 +144,11 @@ export default function ClientsTree({
                      case "PENDING":
                             return "bg-amber-500/10 text-amber-600 border-amber-500/20";
                      case "REVOKED":
-                            return "bg-red-500/10 text-white border-red-500/20";
+                            return "bg-red-500/10 text-red-400 border-red-500/20";
                      case "EXPIRED":
-                            return "bg-slate-500/10 text-slate-400 border-slate-500/20";
+                            return "bg-zinc-500/10 text-zinc-400 border-zinc-500/20";
                      default:
-                            return "bg-slate-500/10 text-slate-600 border-slate-500/20";
+                            return "bg-zinc-500/10 text-zinc-600 border-zinc-500/20";
               }
        };
 
@@ -200,7 +200,7 @@ export default function ClientsTree({
        return (
               <div className="space-y-4">
                      {clients.length === 0 ? (
-                            <Card className="border-border/50 bg-card/50">
+                            <Card className="border-zinc-800 bg-zinc-900/50">
                                    <CardContent className="flex flex-col items-center justify-center py-12">
                                           <User className="h-12 w-12 text-muted-foreground/50 mb-4" />
                                           <h3 className="text-lg font-semibold mb-2">
@@ -224,13 +224,13 @@ export default function ClientsTree({
                                                  value={client._id}
                                                  className="border-0"
                                           >
-                                                 <Card className="border-slate-700/50 bg-slate-800/50 backdrop-blur-sm overflow-hidden">
+                                                 <Card className="border-zinc-700/50 bg-zinc-800/50 backdrop-blur-sm overflow-hidden">
                                                         <div className="relative">
-                                                               <div className="absolute right-16 top-1/2 -translate-y-1/2 z-20">
+                                                               <div className="absolute right-16 top-1/2 -tranzinc-y-1/2 z-20">
                                                                       <Button
                                                                              size="sm"
                                                                              variant="outline"
-                                                                             className="bg-transparent border-slate-600 hover:bg-slate-700 text-slate-300 h-8"
+                                                                             className="bg-transparent border-zinc-600 hover:bg-zinc-700 text-zinc-300 h-8"
                                                                              onClick={(
                                                                                     e,
                                                                              ) => {
@@ -252,7 +252,7 @@ export default function ClientsTree({
                                                                                     <div className="flex items-center justify-between gap-4">
                                                                                            <div className="flex items-center gap-3 flex-1 text-left">
                                                                                                   <div className="p-2 rounded-lg shrink-0">
-                                                                                                         <User className="h-10 w-10 border-2 border-white rounded-md p-2 text-white" />
+                                                                                                         <User className="h-10 w-10 border border-zinc-700 bg-zinc-800/60 rounded-lg p-2 text-white" />
                                                                                                   </div>
                                                                                                   <div>
                                                                                                          <h3 className="font-semibold text-base text-white">
@@ -260,7 +260,7 @@ export default function ClientsTree({
                                                                                                                        client.name
                                                                                                                 }
                                                                                                          </h3>
-                                                                                                         <p className="text-xs text-slate-400 mt-1">
+                                                                                                         <p className="text-xs text-zinc-400 mt-1">
                                                                                                                 {client
                                                                                                                        .projects
                                                                                                                        ?.length ||
@@ -275,7 +275,7 @@ export default function ClientsTree({
                                                                                                          </p>
                                                                                                   </div>
                                                                                            </div>
-                                                                                           <ChevronDown className="h-5 w-5 text-slate-400 shrink-0 transition-transform" />
+                                                                                           <ChevronDown className="h-5 w-5 text-zinc-400 shrink-0 transition-transform" />
                                                                                     </div>
                                                                              </CardContent>
                                                                       </button>
@@ -297,12 +297,12 @@ export default function ClientsTree({
                                                                                                   key={
                                                                                                          project._id
                                                                                                   }
-                                                                                                  className="border-slate-700/50 bg-slate-700/30 backdrop-blur-sm overflow-hidden"
+                                                                                                  className="border-zinc-700/50 bg-zinc-700/30 backdrop-blur-sm overflow-hidden"
                                                                                            >
-                                                                                                  <CardHeader className="pb-4 border-b border-slate-700/30">
+                                                                                                  <CardHeader className="pb-4 border-b border-zinc-700/30">
                                                                                                          <div className="flex items-center justify-between gap-2">
                                                                                                                 <div className="flex items-center gap-2">
-                                                                                                                       <FileText className="h-4 w-4 text-slate-400 shrink-0" />
+                                                                                                                       <FileText className="h-4 w-4 text-zinc-400 shrink-0" />
                                                                                                                        <CardTitle className="text-sm font-semibold text-white">
                                                                                                                               {
                                                                                                                                      project.name
@@ -324,11 +324,11 @@ export default function ClientsTree({
                                                                                                                                      "PENDING"
                                                                                                                               ) {
                                                                                                                                      return (
-                                                                                                                                            <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider px-2 py-1 rounded border shadow-sm bg-slate-800/50 border-slate-700/50 text-slate-400">
-                                                                                                                                                   <span className="font-semibold text-slate-500">
+                                                                                                                                            <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider px-2 py-1 rounded border shadow-sm bg-zinc-800/50 border-zinc-700/50 text-zinc-400">
+                                                                                                                                                   <span className="font-semibold text-zinc-500">
                                                                                                                                                           Status:
                                                                                                                                                    </span>
-                                                                                                                                                   <span className="font-mono font-bold text-slate-300">
+                                                                                                                                                   <span className="font-mono font-bold text-zinc-300">
                                                                                                                                                           Starts
                                                                                                                                                           on
                                                                                                                                                           Activation
@@ -393,20 +393,20 @@ export default function ClientsTree({
                                                                                                                 0 ? (
                                                                                                                 <div className="overflow-x-auto">
                                                                                                                        <table className="w-full text-sm">
-                                                                                                                              <thead className="border-b border-slate-700/50">
+                                                                                                                              <thead className="border-b border-zinc-700/50">
                                                                                                                                      <tr>
-                                                                                                                                            <th className="text-left py-3 px-4 text-slate-300">
+                                                                                                                                            <th className="text-left py-3 px-4 text-zinc-300">
                                                                                                                                                    License
                                                                                                                                                    Key
                                                                                                                                             </th>
-                                                                                                                                            <th className="text-left py-3 px-4 text-slate-300">
+                                                                                                                                            <th className="text-left py-3 px-4 text-zinc-300">
                                                                                                                                                    Services
                                                                                                                                             </th>
 
-                                                                                                                                            <th className="text-left py-3 px-4 text-slate-300">
+                                                                                                                                            <th className="text-left py-3 px-4 text-zinc-300">
                                                                                                                                                    Status
                                                                                                                                             </th>
-                                                                                                                                            <th className="text-right py-3 px-4 text-slate-300">
+                                                                                                                                            <th className="text-right py-3 px-4 text-zinc-300">
                                                                                                                                                    Actions
                                                                                                                                             </th>
                                                                                                                                      </tr>
@@ -420,11 +420,11 @@ export default function ClientsTree({
                                                                                                                                                           key={
                                                                                                                                                                  license._id
                                                                                                                                                           }
-                                                                                                                                                          className="border-t border-slate-700/30"
+                                                                                                                                                          className="border-t border-zinc-700/30"
                                                                                                                                                    >
                                                                                                                                                           <td className="py-4 px-4">
                                                                                                                                                                  <div className="flex items-center gap-2">
-                                                                                                                                                                        <code className="font-mono text-xs bg-slate-700/50 px-2 py-1 rounded text-slate-300">
+                                                                                                                                                                        <code className="font-mono text-xs bg-zinc-700/50 px-2 py-1 rounded text-zinc-300">
                                                                                                                                                                                {visibleKeys[
                                                                                                                                                                                       license
                                                                                                                                                                                              ._id
@@ -516,7 +516,7 @@ export default function ClientsTree({
                                                                                                                                                                                                     key={
                                                                                                                                                                                                            service
                                                                                                                                                                                                     }
-                                                                                                                                                                                                    className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-600/50 text-slate-200 border border-slate-500/30"
+                                                                                                                                                                                                    className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-zinc-600/50 text-zinc-200 border border-zinc-500/30"
                                                                                                                                                                                              >
                                                                                                                                                                                                     {
                                                                                                                                                                                                            service
@@ -525,7 +525,7 @@ export default function ClientsTree({
                                                                                                                                                                                       ),
                                                                                                                                                                                )
                                                                                                                                                                         ) : (
-                                                                                                                                                                               <span className="text-slate-500 text-xs">
+                                                                                                                                                                               <span className="text-zinc-500 text-xs">
                                                                                                                                                                                       No
                                                                                                                                                                                       services
                                                                                                                                                                                </span>
@@ -571,7 +571,7 @@ export default function ClientsTree({
                                                                                                                                                                                       isTogglingKey ===
                                                                                                                                                                                       license.key
                                                                                                                                                                                }
-                                                                                                                                                                               className={`group relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-all duration-300 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ${
+                                                                                                                                                                               className={`group relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-all duration-300 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 ${
                                                                                                                                                                                       isTogglingKey ===
                                                                                                                                                                                       license.key
                                                                                                                                                                                              ? "opacity-60 cursor-wait"
@@ -580,7 +580,7 @@ export default function ClientsTree({
                                                                                                                                                                                       license.status ===
                                                                                                                                                                                       "ACTIVE"
                                                                                                                                                                                              ? "bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.4)] focus-visible:ring-emerald-500"
-                                                                                                                                                                                             : "bg-gradient-to-r from-slate-600 to-slate-500 shadow-inner focus-visible:ring-slate-400"
+                                                                                                                                                                                             : "bg-gradient-to-r from-zinc-600 to-zinc-500 shadow-inner focus-visible:ring-zinc-400"
                                                                                                                                                                                }`}
                                                                                                                                                                                title={
                                                                                                                                                                                       license.status ===
@@ -599,8 +599,8 @@ export default function ClientsTree({
                                                                                                                                                                                       className={`pointer-events-none relative inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition-all duration-300 ease-in-out ${
                                                                                                                                                                                              license.status ===
                                                                                                                                                                                              "ACTIVE"
-                                                                                                                                                                                                    ? "translate-x-5"
-                                                                                                                                                                                                    : "translate-x-0.5"
+                                                                                                                                                                                                    ? "tranzinc-x-5"
+                                                                                                                                                                                                    : "tranzinc-x-0.5"
                                                                                                                                                                                       } ${
                                                                                                                                                                                              isTogglingKey ===
                                                                                                                                                                                              license.key
@@ -645,11 +645,11 @@ export default function ClientsTree({
                                                                                                                                                                  ) : (
                                                                                                                                                                         <div className="inline-flex items-center gap-2">
                                                                                                                                                                                <span
-                                                                                                                                                                                      className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full bg-slate-700/50 opacity-50 cursor-not-allowed`}
+                                                                                                                                                                                      className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full bg-zinc-700/50 opacity-50 cursor-not-allowed`}
                                                                                                                                                                                >
-                                                                                                                                                                                      <span className="pointer-events-none inline-block h-5 w-5 translate-x-0.5 rounded-full bg-slate-400 shadow" />
+                                                                                                                                                                                      <span className="pointer-events-none inline-block h-5 w-5 tranzinc-x-0.5 rounded-full bg-zinc-400 shadow" />
                                                                                                                                                                                </span>
-                                                                                                                                                                               <span className="text-xs text-slate-500">
+                                                                                                                                                                               <span className="text-xs text-zinc-500">
                                                                                                                                                                                       Pending
                                                                                                                                                                                </span>
                                                                                                                                                                         </div>
@@ -662,7 +662,7 @@ export default function ClientsTree({
                                                                                                                        </table>
                                                                                                                 </div>
                                                                                                          ) : (
-                                                                                                                <div className="text-center py-8 text-slate-400">
+                                                                                                                <div className="text-center py-8 text-zinc-400">
                                                                                                                        <p className="text-sm">
                                                                                                                               No
                                                                                                                               licenses
@@ -675,7 +675,7 @@ export default function ClientsTree({
                                                                                     ),
                                                                              )
                                                                       ) : (
-                                                                             <div className="text-center py-6 text-slate-400">
+                                                                             <div className="text-center py-6 text-zinc-400">
                                                                                     <p className="text-sm">
                                                                                            No
                                                                                            projects
@@ -704,19 +704,19 @@ export default function ClientsTree({
                                    !open && setRenewTarget(null)
                             }
                      >
-                            <DialogContent className="sm:max-w-[400px] bg-neutral-950 text-white">
+                            <DialogContent className="sm:max-w-[400px] bg-zinc-950 border border-zinc-800 text-white">
                                    <DialogHeader>
                                           <DialogTitle className="text-xl">
                                                  Renew License
                                           </DialogTitle>
-                                          <DialogDescription className="text-slate-400">
+                                          <DialogDescription className="text-zinc-400">
                                                  Choose how long to extend this
                                                  license for.
                                           </DialogDescription>
                                    </DialogHeader>
 
                                    <div className="space-y-2 py-2">
-                                          <span className="text-xs text-slate-400">
+                                          <span className="text-xs text-zinc-400">
                                                  Duration
                                           </span>
                                           <Select
@@ -725,10 +725,10 @@ export default function ClientsTree({
                                                         setRenewDuration
                                                  }
                                           >
-                                                 <SelectTrigger className="bg-muted/50 border-border/50">
+                                                 <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white">
                                                         <SelectValue placeholder="Select duration" />
                                                  </SelectTrigger>
-                                                 <SelectContent className="bg-muted/50 border-border/50">
+                                                 <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
                                                         {RENEWAL_DURATIONS.map(
                                                                (months) => (
                                                                       <SelectItem
@@ -738,7 +738,7 @@ export default function ClientsTree({
                                                                              value={String(
                                                                                     months,
                                                                              )}
-                                                                             className="focus:bg-slate-700 focus:text-white"
+                                                                             className="focus:bg-zinc-700 focus:text-white"
                                                                       >
                                                                              {
                                                                                     months
@@ -758,7 +758,7 @@ export default function ClientsTree({
                                    <DialogFooter>
                                           <Button
                                                  onClick={handleConfirmRenew}
-                                                 className="w-full bg-blue-600 hover:bg-blue-700"
+                                                 className="w-full bg-white text-black hover:bg-zinc-200 font-medium"
                                           >
                                                  <RefreshCw className="h-4 w-4 mr-2" />
                                                  Renew for {renewDuration}{" "}

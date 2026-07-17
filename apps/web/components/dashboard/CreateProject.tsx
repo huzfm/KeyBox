@@ -89,7 +89,7 @@ export default function CreateProject({
        };
 
        return (
-              <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+              <Card className="border-zinc-800 bg-zinc-900/50 backdrop-blur-sm">
                      <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                    <FolderPlus className="h-5 w-5" />
@@ -106,7 +106,7 @@ export default function CreateProject({
                                           value={clientId}
                                           onValueChange={setClientId}
                                    >
-                                          <SelectTrigger className="bg-muted/50 border-border/50">
+                                          <SelectTrigger className="bg-zinc-900/70 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-violet-500/40">
                                                  <SelectValue placeholder="Select a client" />
                                           </SelectTrigger>
                                           <SelectContent>
@@ -133,7 +133,7 @@ export default function CreateProject({
                                                         ).value,
                                                  )
                                           }
-                                          className="bg-muted/50 border-border/50"
+                                          className="bg-zinc-900/70 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-violet-500/40"
                                    />
 
                                    <Input
@@ -161,14 +161,14 @@ export default function CreateProject({
                                                         setDuration(value);
                                                  }
                                           }}
-                                          className="bg-muted/50 border-border/50"
+                                          className="bg-zinc-900/70 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-violet-500/40"
                                           placeholder="Duration in months"
                                    />
                             </div>
                             {duration &&
                                    typeof duration === "number" &&
                                    duration > 0 && (
-                                          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 p-2 rounded-md border border-border/30 w-fit mx-auto animate-in fade-in slide-in-from-top-1">
+                                          <div className="flex items-center gap-2 text-xs text-zinc-400 bg-zinc-900/60 p-2 rounded-md border border-zinc-800 w-fit mx-auto animate-in fade-in slide-in-from-top-1">
                                                  <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                                                  <span>
                                                         License will expire on:
@@ -216,8 +216,8 @@ export default function CreateProject({
                     border-2 
                     ${
                            isSelected
-                                  ? "bg-slate-100 text-black"
-                                  : "bg-muted/50 text-muted-foreground border-border/50 hover:border-primary/50 hover:text-foreground"
+                                  ? "bg-white text-black border-white"
+                                  : "bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:border-zinc-600 hover:text-white"
                     }
                   `}
                                                         >
@@ -254,7 +254,7 @@ export default function CreateProject({
                                                  services.length === 0 ||
                                                  isCreating
                                           }
-                                          className="mx-auto bg-primary hover:bg-primary/90 text-primary-foreground"
+                                          className="mx-auto bg-white text-black hover:bg-zinc-200 font-medium"
                                    >
                                           {isCreating
                                                  ? "Creating..."
