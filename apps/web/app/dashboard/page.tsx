@@ -1,7 +1,7 @@
 "use client"
 
-import { useMemo, useEffect, useState, Suspense } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { useMemo, useEffect, useState, useRef, Suspense } from "react"
+import { motion, AnimatePresence, animate } from "framer-motion"
 import {
 	useCreateClient,
 	useCreateProject,
@@ -25,10 +25,6 @@ import {
 	LogOut,
 	Users,
 	Key,
-	CheckCircle2,
-	XCircle,
-	Clock,
-	FolderOpen,
 	Shield,
 } from "lucide-react"
 import Cookies from "js-cookie"
@@ -59,43 +55,58 @@ interface Client {
 
 const ease = [0.21, 0.47, 0.32, 0.98] as const
 
-interface StatCardProps {
-	icon: React.ElementType
+const STAT_ACCENTS = {
+	neutral: { num: "text-white", dot: "bg-zinc-500" },
+	violet: { num: "text-white", dot: "bg-violet-400" },
+	emerald: { num: "text-emerald-400", dot: "bg-emerald-400" },
+	amber: { num: "text-amber-400", dot: "bg-amber-400" },
+	rose: { num: "text-rose-400", dot: "bg-rose-400" },
+} as const
+
+interface StatCellProps {
 	label: string
 	value: number
-	borderColor: string
-	iconColor: string
-	glowColor: string
+	accent: keyof typeof STAT_ACCENTS
 	delay: number
+	className?: string
 }
 
-function StatCard({ icon: Icon, label, value, borderColor, iconColor, glowColor, delay }: StatCardProps) {
-	return (
-		<motion.div
-			initial={{ opacity: 0, y: 20, scale: 0.95 }}
-			animate={{ opacity: 1, y: 0, scale: 1 }}
-			transition={{ duration: 0.5, delay, ease }}
-			whileHover={{ y: -2, transition: { duration: 0.2 } }}
-			className={`relative rounded-xl border ${borderColor} bg-zinc-900/60 backdrop-blur-sm px-5 py-4 flex items-center gap-4 overflow-hidden group`}
-		>
-			{/* Subtle glow on hover */}
-			<div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${glowColor} blur-xl rounded-xl`} />
+function useCountUp(value: number) {
+	const [display, setDisplay] = useState(0)
+	const prev = useRef(0)
+	useEffect(() => {
+		const controls = animate(prev.current, value, {
+			duration: 0.9,
+			ease: [0.16, 1, 0.3, 1],
+			onUpdate: (v) => setDisplay(Math.round(v)),
+		})
+		prev.current = value
+		return () => controls.stop()
+	}, [value])
+	return display
+}
 
-			<div className={`relative shrink-0 p-2.5 rounded-lg bg-zinc-800/80 border border-zinc-700/50 ${iconColor}`}>
-				<Icon className="w-4 h-4" />
-			</div>
-			<div className="relative">
-				<motion.p
-					initial={{ opacity: 0 }}
-					animate={{ opacity: 1 }}
-					transition={{ duration: 0.4, delay: delay + 0.15 }}
-					className="text-2xl font-bold font-mono text-white"
-				>
-					{value}
-				</motion.p>
-				<p className="text-xs text-zinc-500 mt-0.5 font-medium">{label}</p>
-			</div>
-		</motion.div>
+function StatCell({ label, value, accent, delay, className = "" }: StatCellProps) {
+	const a = STAT_ACCENTS[accent]
+	const display = useCountUp(value)
+	return (
+		<div className={`bg-zinc-950/90 px-5 py-4 hover:bg-zinc-900/80 transition-colors duration-200 ${className}`}>
+			<motion.div
+				initial={{ opacity: 0, y: 8 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ duration: 0.45, delay, ease }}
+			>
+				<div className="flex items-center gap-1.5">
+					<span className={`h-1.5 w-1.5 rounded-full shrink-0 ${a.dot}`} />
+					<p className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold whitespace-nowrap">
+						{label}
+					</p>
+				</div>
+				<p className={`text-2xl sm:text-3xl font-bold font-mono leading-none tabular-nums mt-2.5 ${a.num}`}>
+					{display}
+				</p>
+			</motion.div>
+		</div>
 	)
 }
 
@@ -325,56 +336,47 @@ function DashboardContent() {
 					</p>
 				</motion.div>
 
-				{/* ── STATS ROW ── */}
+				{/* ── STATS STRIP ── */}
 				<AnimatePresence>
 					{!isLoading && (
-						<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-							<StatCard
-								icon={Users}
+						<motion.div
+							initial={{ opacity: 0, y: 12 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.5, ease }}
+							className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-px rounded-2xl border border-zinc-800 bg-zinc-800/70 overflow-hidden backdrop-blur-sm"
+						>
+							<StatCell
 								label="Total Clients"
 								value={stats.totalClients}
-								borderColor="border-zinc-800"
-								iconColor="text-zinc-300"
-								glowColor="bg-white/5"
-								delay={0}
+								accent="neutral"
+								delay={0.05}
 							/>
-							<StatCard
-								icon={FolderOpen}
+							<StatCell
 								label="Projects"
 								value={stats.totalProjects}
-								borderColor="border-zinc-800"
-								iconColor="text-zinc-300"
-								glowColor="bg-white/5"
-								delay={0.06}
+								accent="violet"
+								delay={0.1}
 							/>
-							<StatCard
-								icon={CheckCircle2}
+							<StatCell
 								label="Active"
 								value={stats.active}
-								borderColor="border-emerald-900/50"
-								iconColor="text-emerald-400"
-								glowColor="bg-emerald-500/10"
-								delay={0.12}
+								accent="emerald"
+								delay={0.15}
 							/>
-							<StatCard
-								icon={Clock}
+							<StatCell
 								label="Pending"
 								value={stats.pending}
-								borderColor="border-amber-900/50"
-								iconColor="text-amber-400"
-								glowColor="bg-amber-500/10"
-								delay={0.18}
+								accent="amber"
+								delay={0.2}
 							/>
-							<StatCard
-								icon={XCircle}
+							<StatCell
 								label="Revoked / Expired"
 								value={stats.revoked + stats.expired}
-								borderColor="border-red-900/50"
-								iconColor="text-red-400"
-								glowColor="bg-red-500/10"
-								delay={0.24}
+								accent="rose"
+								delay={0.25}
+								className="col-span-2 sm:col-span-2 lg:col-span-1"
 							/>
-						</div>
+						</motion.div>
 					)}
 				</AnimatePresence>
 

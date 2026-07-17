@@ -172,14 +172,14 @@ export default function CreateBillDialog({
 
      return (
           <Dialog open={isOpen} onOpenChange={onOpenChange}>
-               <DialogContent className="sm:max-w-[500px] bg-neutral-950  text-white">
+               <DialogContent className="sm:max-w-[500px] bg-zinc-950 border border-zinc-800 text-white">
                     <DialogHeader>
                          <DialogTitle className="text-xl">
                               {step === "create"
                                    ? "Create New Bill"
                                    : "Bill Created Successfully"}
                          </DialogTitle>
-                         <DialogDescription className="text-slate-400">
+                         <DialogDescription className="text-zinc-400">
                               {step === "create"
                                    ? `Add billing details for ${client.name}`
                                    : `Review and send the bill to ${client.name}`}
@@ -189,17 +189,17 @@ export default function CreateBillDialog({
                     {step === "create" ? (
                          <div className="space-y-4 py-4">
                               <div className="space-y-2">
-                                   <span className="text-xs text-slate-400">
+                                   <span className="text-xs text-zinc-400">
                                         Project
                                    </span>
                                    <Select
                                         value={selectedProjectId}
                                         onValueChange={handleProjectChange}
                                    >
-                                        <SelectTrigger className="bg-muted/50 border-border/50">
+                                        <SelectTrigger className="bg-zinc-900/70 border-zinc-800 text-white">
                                              <SelectValue placeholder="Select a project" />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-muted/50 border-border/50">
+                                        <SelectContent className="bg-zinc-900/70 border-zinc-800 text-white">
                                              {client.projects &&
                                              client.projects.length > 0 ? (
                                                   client.projects.map(
@@ -211,14 +211,14 @@ export default function CreateBillDialog({
                                                                  value={
                                                                       project._id
                                                                  }
-                                                                 className="focus:bg-slate-700 focus:text-white"
+                                                                 className="focus:bg-zinc-700 focus:text-white"
                                                             >
                                                                  {project.name}
                                                             </SelectItem>
                                                        ),
                                                   )
                                              ) : (
-                                                  <div className="p-2 text-sm text-slate-400">
+                                                  <div className="p-2 text-sm text-zinc-400">
                                                        No projects found
                                                   </div>
                                              )}
@@ -234,7 +234,7 @@ export default function CreateBillDialog({
                                         >
                                              <div className="grid gap-1.5 flex-1">
                                                   {index === 0 && (
-                                                       <span className="text-xs text-slate-400">
+                                                       <span className="text-xs text-zinc-400">
                                                             Description
                                                        </span>
                                                   )}
@@ -248,12 +248,12 @@ export default function CreateBillDialog({
                                                                  e.target.value,
                                                             )
                                                        }
-                                                       className="bg-muted/50 border-border/50"
+                                                       className="bg-zinc-900/70 border-zinc-800 text-white"
                                                   />
                                              </div>
                                              <div className="grid gap-1.5 w-24">
                                                   {index === 0 && (
-                                                       <span className="text-xs text-slate-400">
+                                                       <span className="text-xs text-zinc-400">
                                                             Amount
                                                        </span>
                                                   )}
@@ -278,7 +278,7 @@ export default function CreateBillDialog({
                                                                         ),
                                                             )
                                                        }
-                                                       className="bg-muted/50 border-border/50"
+                                                       className="bg-zinc-900/70 border-zinc-800 text-white"
                                                   />
                                              </div>
                                              <div
@@ -292,7 +292,7 @@ export default function CreateBillDialog({
                                                        onClick={() =>
                                                             removeItem(item.id)
                                                        }
-                                                       className="text-slate-400 "
+                                                       className="text-zinc-400 "
                                                        disabled={
                                                             items.length === 1
                                                        }
@@ -308,26 +308,26 @@ export default function CreateBillDialog({
                                    variant="outline"
                                    size="sm"
                                    onClick={addItem}
-                                   className="w-full border-2 border-black text-black bg-slate-100 font-mono text-sm"
+                                   className="w-full border-2 border-black text-black bg-zinc-100 font-mono text-sm"
                               >
                                    <Plus className="h-4 w-4 mr-2" /> Add Item
                               </Button>
 
-                              <div className="flex justify-between items-center pt-4 border-t border-slate-800">
+                              <div className="flex justify-between items-center pt-4 border-t border-zinc-800">
                                    <span className="font-semibold text-3xl">
                                         Total
                                    </span>
-                                   <span className="text-xl font-bold text-white border-1 px-2 py-1 rounded-md border-slate-200">
+                                   <span className="text-xl font-bold text-white border-1 px-2 py-1 rounded-md border-zinc-200">
                                         ₹ {totalAmount.toFixed(2)}
                                    </span>
                               </div>
                          </div>
                     ) : (
                          <div className="py-6 space-y-6">
-                              <div className="bg-slate-800/50 rounded-lg p-4 space-y-3 border border-slate-700">
-                                   <div className="flex items-center gap-3 pb-3 border-b border-slate-700/50">
-                                        <div className="h-10 w-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                                             <FileText className="h-5 w-5 text-blue-400" />
+                              <div className="bg-zinc-800/50 rounded-lg p-4 space-y-3 border border-zinc-700">
+                                   <div className="flex items-center gap-3 pb-3 border-b border-zinc-700/50">
+                                        <div className="h-10 w-10 rounded-full bg-violet-500/15 border border-violet-500/20 flex items-center justify-center">
+                                             <FileText className="h-5 w-5 text-violet-300" />
                                         </div>
                                         <div>
                                              <p className="font-medium text-white">
@@ -336,7 +336,7 @@ export default function CreateBillDialog({
                                                        Math.random() * 10000,
                                                   )}
                                              </p>
-                                             <p className="text-xs text-slate-400">
+                                             <p className="text-xs text-zinc-400">
                                                   {new Date().toLocaleDateString()}
                                              </p>
                                         </div>
@@ -344,13 +344,13 @@ export default function CreateBillDialog({
                                              <p className="font-bold text-white">
                                                   ₹{totalAmount.toFixed(2)}
                                              </p>
-                                             <p className="text-xs text-slate-400">
+                                             <p className="text-xs text-zinc-400">
                                                   {items.length} items
                                              </p>
                                         </div>
                                    </div>
                                    <div className="space-y-1">
-                                        <p className="text-xs uppercase tracking-wider text-slate-500 font-medium">
+                                        <p className="text-xs uppercase tracking-wider text-zinc-500 font-medium">
                                              Billed To
                                         </p>
                                         <div className="flex justify-between items-start">
@@ -358,17 +358,17 @@ export default function CreateBillDialog({
                                                   <p className="text-sm font-medium">
                                                        {client.name}
                                                   </p>
-                                                  <p className="text-sm text-slate-400">
+                                                  <p className="text-sm text-zinc-400">
                                                        {client.email ||
                                                             "No email provided"}
                                                   </p>
                                              </div>
                                              {selectedProject && (
                                                   <div className="text-right">
-                                                       <p className="text-xs uppercase tracking-wider text-slate-500 font-medium">
+                                                       <p className="text-xs uppercase tracking-wider text-zinc-500 font-medium">
                                                             Project
                                                        </p>
-                                                       <p className="text-sm font-medium text-blue-400">
+                                                       <p className="text-sm font-medium text-violet-300">
                                                             {
                                                                  selectedProject.name
                                                             }
@@ -386,14 +386,14 @@ export default function CreateBillDialog({
                               <Button
                                    onClick={handleCreate}
                                    disabled={!selectedProjectId}
-                                   className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                   className="w-full bg-white text-black hover:bg-zinc-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                    Create Bill
                               </Button>
                          ) : (
                               <Button
                                    onClick={handleSendEmail}
-                                   className="w-full bg-slate-900 hover:bg-slate-800"
+                                   className="w-full bg-white text-black hover:bg-zinc-200 font-medium"
                               >
                                    <Send className="h-4 w-4 mr-2" />
                                    Send to {client.email || "Client"}

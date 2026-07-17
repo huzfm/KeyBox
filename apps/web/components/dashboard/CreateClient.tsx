@@ -46,7 +46,7 @@ export default function CreateClient({ onCreate }: CreateClientProps) {
        };
 
        return (
-              <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+              <Card className="border-zinc-800 bg-zinc-900/50 backdrop-blur-sm">
                      <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                    <Plus className="h-5 w-5" />
@@ -74,7 +74,7 @@ export default function CreateClient({ onCreate }: CreateClientProps) {
                                                  e.key === "Enter" &&
                                                  handleCreate()
                                           }
-                                          className="bg-muted/50 border-border/50"
+                                          className="bg-zinc-900/70 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-violet-500/40"
                                    />
                                    <Input
                                           type="email"
@@ -93,14 +93,14 @@ export default function CreateClient({ onCreate }: CreateClientProps) {
                                                  e.key === "Enter" &&
                                                  handleCreate()
                                           }
-                                          className={`bg-muted/50 border-border/50 ${
+                                          className={`bg-zinc-900/70 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-violet-500/40 ${
                                                  email && !isValidEmail(email)
-                                                        ? "border-red-500"
+                                                        ? "border-rose-500/60"
                                                         : ""
                                           }`}
                                    />
                                    {email && !isValidEmail(email) && (
-                                          <p className="text-xs text-red-500">
+                                          <p className="text-xs text-rose-400">
                                                  Please enter a valid email
                                                  address
                                           </p>
@@ -113,7 +113,7 @@ export default function CreateClient({ onCreate }: CreateClientProps) {
                                                  !isValidEmail(email) ||
                                                  isCreating
                                           }
-                                          className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                                          className="bg-white text-black hover:bg-zinc-200 font-medium"
                                    >
                                           {isCreating
                                                  ? "Creating..."
