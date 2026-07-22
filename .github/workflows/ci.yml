@@ -1,0 +1,94 @@
+name: CI
+
+on:
+     pull_request:
+     push:
+          branches:
+               - main
+
+permissions:
+     contents: read
+
+concurrency:
+     group: ci-${{ github.workflow }}-${{ github.ref }}
+     cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+     web:
+          name: Web - lint, typecheck & build
+          runs-on: ubuntu-latest
+
+          steps:
+               - name: Checkout code
+                 uses: actions/checkout@v4
+
+               # pnpm must be set up before setup-node so that cache: pnpm can find it.
+               - name: Set up pnpm
+                 uses: pnpm/action-setup@v4
+
+               - name: Set up Node
+                 uses: actions/setup-node@v4
+                 with:
+                      node-version: 20
+                      cache: pnpm
+
+               - name: Install dependencies
+                 run: pnpm install --frozen-lockfile
+
+               # Covers @repo/ui and web. apps/server has no lint script.
+               - name: Lint
+                 run: pnpm lint
+
+               # Covers @repo/ui only; web is typechecked by `next build` below.
+               - name: Typecheck
+                 run: pnpm check-types
+
+               - name: Build web
+                 run: pnpm exec turbo run build --filter=web
+                 env:
+                      # Inlined into the client bundle at build time. No production
+                      # value here on purpose - this only needs to be a well-formed
+                      # URL so the build is deterministic; nothing is called at build time.
+                      NEXT_PUBLIC_API_URL: http://localhost:3000
+                      NEXT_TELEMETRY_DISABLED: "1"
+
+     server:
+          name: Server - tests
+          # Pinned to 22.04 on purpose: the tests spin up mongodb-memory-server with
+          # MongoDB 6.0.5, which has no official build for Ubuntu 24.04
+          # (what ubuntu-latest now resolves to).
+          runs-on: ubuntu-22.04
+
+          steps:
+               - name: Checkout code
+                 uses: actions/checkout@v4
+
+               - name: Set up pnpm
+                 uses: pnpm/action-setup@v4
+
+               - name: Set up Node
+                 uses: actions/setup-node@v4
+                 with:
+                      node-version: 20
+                      cache: pnpm
+
+               - name: Install dependencies
+                 run: pnpm install --frozen-lockfile
+
+               # mongodb-memory-server downloads a ~100MB mongod binary on first run.
+               - name: Cache MongoDB binaries
+                 uses: actions/cache@v4
+                 with:
+                      path: ~/.cache/mongodb-binaries
+                      key: mongodb-binaries-6.0.5-${{ runner.os }}
+
+               - name: Test
+                 # apps/server is the only workspace package with a test script.
+                 # "node-ts-mongo" is its package.json name.
+                 run: pnpm --filter node-ts-mongo test
+                 env:
+                      NODE_ENV: test
+                      # Must be set explicitly: src/middleware/jwt.ts falls back to "ABCDEF"
+                      # while the test helpers fall back to "defaultsecret", so leaving this
+                      # unset makes token verification fail in the auth tests.
+                      JWT_SECRET: ci-test-secret

@@ -1,0 +1,80 @@
+name: Publish Node SDK
+
+on:
+     push:
+          tags:
+               - "sdk-node-v*"
+
+permissions:
+     contents: read
+
+defaults:
+     run:
+          working-directory: apps/SDK/Node-SDK
+
+jobs:
+     publish:
+          name: Verify & publish to npm
+          runs-on: ubuntu-latest
+
+          steps:
+               - name: Checkout code
+                 uses: actions/checkout@v4
+
+               - name: Set up Node
+                 uses: actions/setup-node@v4
+                 with:
+                      node-version: 20
+                      registry-url: https://registry.npmjs.org
+
+               # Guards against tagging sdk-node-v1.2.0 while package.json still says 1.1.1,
+               # which would publish the wrong version under the right tag.
+               - name: Verify tag matches package.json version
+                 run: |
+                      TAG_VERSION="${GITHUB_REF_NAME#sdk-node-v}"
+                      PKG_VERSION="$(node -p "require('./package.json').version")"
+                      if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+                        echo "Tag version ($TAG_VERSION) != package.json version ($PKG_VERSION)" >&2
+                        exit 1
+                      fi
+                      echo "Publishing version $PKG_VERSION"
+
+               - name: Install dependencies
+                 # No lockfile is committed for this package, so `npm ci` is not usable here.
+                 run: npm install
+
+               # NOTE: this package has no test suite. Until one exists, the pre-publish
+               # gate is an import + export-surface check, which catches syntax errors,
+               # bad imports and missing dependencies. Replace with `npm test` once real
+               # tests land.
+               - name: Verify package imports
+                 run: |
+                      node -e "
+                        import('./index.js').then((m) => {
+                          const expected = [
+                            'activateLicense',
+                            'checkLicenseStatus',
+                            'startLicenseDaemon',
+                            'stopLicenseDaemon',
+                            'getLicenseState',
+                            'LicenseState',
+                          ];
+                          const missing = expected.filter((k) => !(k in m));
+                          if (missing.length) {
+                            console.error('Missing exports: ' + missing.join(', '));
+                            process.exit(1);
+                          }
+                          console.log('Import OK, all expected exports present.');
+                        }).catch((err) => {
+                          console.error(err);
+                          process.exit(1);
+                        });
+                      "
+
+               - name: Verify package contents
+                 run: npm pack --dry-run
+
+               - name: Publish to npm
+                 run: npm publish --access public
+                 env:
+                      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
