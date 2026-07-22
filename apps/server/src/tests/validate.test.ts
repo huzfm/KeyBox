@@ -1,7 +1,6 @@
 import request from "supertest";
 import app from "../app";
 import { Status } from "../models/License";
-import { machineIdSync } from "node-machine-id";
 import {
        createTestUser,
        createTestClient,
@@ -16,6 +15,9 @@ describe("Validation Controller", () => {
        let projectId: string;
 
        const INSTANCE_ID = "instance-aaa-111";
+       // The SDK sends the customer machine's ID in the request body; the
+       // server never computes one of its own.
+       const MACHINE_ID = "machine-aaa-111";
 
        beforeEach(async () => {
               const user = await createTestUser();
@@ -213,6 +215,7 @@ describe("Validation Controller", () => {
                             .send({
                                    key: license.key,
                                    instanceId: INSTANCE_ID,
+                                   machineId: MACHINE_ID,
                             });
 
                      expect(response.status).toBe(200);
@@ -240,7 +243,7 @@ describe("Validation Controller", () => {
               it("should reject activation without an instanceId", async () => {
                      const response = await request(app)
                             .post("/validate/activate")
-                            .send({ key: "SOME-KEY" });
+                            .send({ key: "SOME-KEY", machineId: MACHINE_ID });
 
                      expect(response.status).toBe(400);
                      expect(response.body.success).toBe(false);
@@ -249,20 +252,33 @@ describe("Validation Controller", () => {
                      );
               });
 
+              it("should reject activation without a machineId", async () => {
+                     const response = await request(app)
+                            .post("/validate/activate")
+                            .send({
+                                   key: "SOME-KEY",
+                                   instanceId: INSTANCE_ID,
+                            });
+
+                     expect(response.status).toBe(400);
+                     expect(response.body.success).toBe(false);
+                     expect(response.body.message).toBe(
+                            "Machine ID is required",
+                     );
+              });
+
               it("should reject re-activation on a different instance", async () => {
                      // Pre-seed an active license bound to a specific instance.
-                     // We seed the same machineId the server's node-machine-id
-                     // will compute at activation time, so the controller's
-                     // machine-mismatch check passes and the instance check
-                     // is the one that fires.
-                     const runtimeMachineId = machineIdSync(true);
+                     // The seeded machineId matches the one the request sends so
+                     // the machine check passes and the instance check is the
+                     // one that fires.
                      const license = await createTestLicense(
                             userId,
                             clientId,
                             projectId,
                             {
                                    status: Status.ACTIVE,
-                                   machineId: runtimeMachineId,
+                                   machineId: MACHINE_ID,
                                    instanceId: "instance-original",
                             },
                      );
@@ -272,6 +288,7 @@ describe("Validation Controller", () => {
                             .send({
                                    key: license.key,
                                    instanceId: "instance-different",
+                                   machineId: MACHINE_ID,
                             });
 
                      expect(response.status).toBe(403);

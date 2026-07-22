@@ -4,6 +4,21 @@ import dotenv from "dotenv"
 
 dotenv.config()
 
+// Importing src/app.ts pulls in modules that validate their config at import
+// time: src/lib/db.ts requires MONGO_URI and src/config/googleStrategy.ts
+// requires the Google OAuth pair, both throwing if unset. Those are deliberate
+// fail-fast guards for real deploys, and the tests need neither connection —
+// Mongo comes from mongodb-memory-server below, and the OAuth flow is only
+// exercised as far as the redirect, which needs the strategy registered but
+// never contacts Google. Placeholders keep the suite runnable without a .env
+// file (CI has none, since .env is gitignored). Real values still win.
+process.env.MONGO_URI ||= "mongodb://127.0.0.1:27017/keybox-test"
+process.env.GOOGLE_CLIENT_ID ||= "test-google-client-id"
+process.env.GOOGLE_CLIENT_SECRET ||= "test-google-client-secret"
+// src/middleware/jwt.ts falls back to "ABCDEF" while the test helpers fall back
+// to "defaultsecret", so an unset secret makes token verification fail.
+process.env.JWT_SECRET ||= "test-jwt-secret"
+
 jest.mock("../lib/redis", () => ({
      get: jest.fn(),
      set: jest.fn(),

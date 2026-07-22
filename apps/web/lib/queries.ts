@@ -1,6 +1,31 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api";
 
+type LicenseStatus = "ACTIVE" | "PENDING" | "REVOKED" | "EXPIRED";
+
+interface License {
+       _id: string;
+       key: string;
+       services?: string;
+       status: LicenseStatus;
+       duration: number;
+       issuedAt: string | Date;
+       expiresAt: string | Date;
+}
+
+interface Project {
+       _id: string;
+       name: string;
+       licenses?: License[];
+}
+
+interface Client {
+       _id: string;
+       name: string;
+       email?: string;
+       projects?: Project[];
+}
+
 export const useDashboard = () =>
        useQuery({
               queryKey: ["dashboard"],
@@ -50,17 +75,17 @@ export const useCreateProject = () => {
 };
 
 const patchLicense = (
-       clients: any,
+       clients: Client[] | undefined,
        key: string,
-       patch: (license: any) => any,
-) => {
+       patch: (license: License) => Partial<License>,
+): Client[] | undefined => {
        if (!Array.isArray(clients)) return clients;
 
-       return clients.map((client: any) => ({
+       return clients.map((client) => ({
               ...client,
-              projects: client.projects?.map((project: any) => ({
+              projects: client.projects?.map((project) => ({
                      ...project,
-                     licenses: project.licenses?.map((license: any) =>
+                     licenses: project.licenses?.map((license) =>
                             license.key === key
                                    ? { ...license, ...patch(license) }
                                    : license,
@@ -69,7 +94,7 @@ const patchLicense = (
        }));
 };
 
-const flipLicenseStatus = (clients: any, key: string) =>
+const flipLicenseStatus = (clients: Client[] | undefined, key: string) =>
        patchLicense(clients, key, (license) => ({
               status: license.status === "ACTIVE" ? "REVOKED" : "ACTIVE",
        }));
@@ -89,7 +114,7 @@ export const useToggleLicense = () => {
 
                      const previous = qc.getQueryData(["dashboard"]);
 
-                     qc.setQueryData(["dashboard"], (old: any) =>
+                     qc.setQueryData<Client[]>(["dashboard"], (old) =>
                             flipLicenseStatus(old, key),
                      );
 
@@ -135,7 +160,7 @@ export const useRenewLicense = () => {
 
                      const previous = qc.getQueryData(["dashboard"]);
 
-                     qc.setQueryData(["dashboard"], (old: any) =>
+                     qc.setQueryData<Client[]>(["dashboard"], (old) =>
                             patchLicense(old, key, () => ({
                                    status: "ACTIVE",
                             })),
@@ -144,7 +169,7 @@ export const useRenewLicense = () => {
                      return { previous };
               },
               onSuccess: (data, { key }) => {
-                     qc.setQueryData(["dashboard"], (old: any) =>
+                     qc.setQueryData<Client[]>(["dashboard"], (old) =>
                             patchLicense(old, key, () => ({
                                    status: data.status,
                                    expiresAt: data.expiresAt,

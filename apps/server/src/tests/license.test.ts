@@ -37,9 +37,9 @@ describe("License Controller", () => {
                     },
                )
 
-               const response = await request(app).patch(
-                    `/license/revoke/${license.key}`,
-               )
+               const response = await request(app)
+                    .patch(`/license/revoke/${license.key}`)
+                    .set("Authorization", `Bearer ${authToken}`)
 
                expect(response.status).toBe(200)
                expect(response.body.message).toContain("REVOKED")
@@ -57,9 +57,9 @@ describe("License Controller", () => {
                     },
                )
 
-               const response = await request(app).patch(
-                    `/license/revoke/${license.key}`,
-               )
+               const response = await request(app)
+                    .patch(`/license/revoke/${license.key}`)
+                    .set("Authorization", `Bearer ${authToken}`)
 
                expect(response.status).toBe(200)
                expect(response.body.message).toContain("ACTIVE")
@@ -67,18 +67,37 @@ describe("License Controller", () => {
           })
 
           it("should return 404 for non-existent license key", async () => {
-               const response = await request(app).patch(
-                    "/license/revoke/NONEXISTENT-KEY",
-               )
+               const response = await request(app)
+                    .patch("/license/revoke/NONEXISTENT-KEY")
+                    .set("Authorization", `Bearer ${authToken}`)
 
                expect(response.status).toBe(404)
                expect(response.body.message).toBe("License not found")
           })
 
           it("should return 400 when key is missing", async () => {
-               const response = await request(app).patch("/license/revoke/")
+               const response = await request(app)
+                    .patch("/license/revoke/")
+                    .set("Authorization", `Bearer ${authToken}`)
 
                expect(response.status).toBe(404)
+          })
+
+          it("should reject revoke without authentication", async () => {
+               const license = await createTestLicense(
+                    userId,
+                    clientId,
+                    projectId,
+                    {
+                         status: Status.ACTIVE,
+                    },
+               )
+
+               const response = await request(app).patch(
+                    `/license/revoke/${license.key}`,
+               )
+
+               expect(response.status).toBe(401)
           })
      })
 

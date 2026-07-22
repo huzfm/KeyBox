@@ -1,0 +1,59 @@
+name: Publish .NET SDK
+
+on:
+     push:
+          tags:
+               - "sdk-dotnet-v*"
+
+permissions:
+     contents: read
+
+defaults:
+     run:
+          working-directory: apps/SDK/Dotnet-SDK
+
+jobs:
+     publish:
+          name: Verify & publish to NuGet
+          runs-on: ubuntu-latest
+
+          steps:
+               - name: Checkout code
+                 uses: actions/checkout@v4
+
+               - name: Set up .NET
+                 uses: actions/setup-dotnet@v4
+                 with:
+                      dotnet-version: "8.0.x"
+
+               - name: Verify tag matches csproj version
+                 run: |
+                      TAG_VERSION="${GITHUB_REF_NAME#sdk-dotnet-v}"
+                      PKG_VERSION="$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' KeyboxSDk.csproj | head -1 | tr -d '[:space:]')"
+                      if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+                        echo "Tag version ($TAG_VERSION) != KeyboxSDk.csproj version ($PKG_VERSION)" >&2
+                        exit 1
+                      fi
+                      echo "Publishing version $PKG_VERSION"
+
+               - name: Restore
+                 run: dotnet restore KeyboxSDk.csproj
+
+               # NOTE: there is no test project in this repo (KeyboxSDk.csproj is the only
+               # .csproj and there is no .sln). A Release build with warnings-as-errors is
+               # the strongest available pre-publish gate. Add `dotnet test` here once a
+               # test project exists.
+               - name: Build (Release)
+                 run: dotnet build KeyboxSDk.csproj -c Release --no-restore -warnaserror
+
+               - name: Pack
+                 run: dotnet pack KeyboxSDk.csproj -c Release --no-build -o ./artifacts
+
+               - name: Publish to NuGet
+                 run: |
+                      dotnet nuget push "./artifacts/*.nupkg" \
+                        --source https://api.nuget.org/v3/index.json \
+                        --api-key "$NUGET_API_KEY" \
+                        --skip-duplicate
+                 env:
+                      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}

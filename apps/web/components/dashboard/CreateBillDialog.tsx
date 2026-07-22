@@ -60,6 +60,7 @@ export default function CreateBillDialog({
      ])
      const [selectedProjectId, setSelectedProjectId] = useState<string>("")
      const [step, setStep] = useState<"create" | "preview">("create")
+     const [invoiceNumber, setInvoiceNumber] = useState<number | null>(null)
 
      if (!client) return null
 
@@ -136,6 +137,9 @@ export default function CreateBillDialog({
 
      const handleCreate = () => {
           if (!selectedProjectId) return
+          // Generated here rather than in render: Math.random() during render is
+          // impure and would produce a new invoice number on every re-render.
+          setInvoiceNumber(Math.floor(Math.random() * 10000))
           setStep("preview")
      }
 
@@ -331,10 +335,7 @@ export default function CreateBillDialog({
                                         </div>
                                         <div>
                                              <p className="font-medium text-white">
-                                                  Invoice #
-                                                  {Math.floor(
-                                                       Math.random() * 10000,
-                                                  )}
+                                                  Invoice #{invoiceNumber}
                                              </p>
                                              <p className="text-xs text-zinc-400">
                                                   {new Date().toLocaleDateString()}
