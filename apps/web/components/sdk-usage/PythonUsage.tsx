@@ -4,7 +4,7 @@ import { useState } from "react"
 import CodeBlock from "../ui/CodeBlock"
 
 export default function PythonUsage() {
-        const [activeSection, setActiveSection] = useState("quickstart")
+        const [activeSection, setActiveSection] = useState("installation")
 
         const quickStartCode = `import os
 from fastapi import FastAPI
@@ -171,6 +171,11 @@ def shutdown():
                                                                 first run, and starts the background validation daemon.
                                                         </p>
                                                 </div>
+                                                <CodeBlock
+                                                        code="pip install keybox-sdk"
+                                                        language="bash"
+                                                        title="Terminal"
+                                                />
                                                 <CodeBlock code={quickStartCode} language="python" title="main.py" />
                                                 <ul className="text-zinc-400 text-sm space-y-1 list-disc list-inside">
                                                         <li>Activates the license on first run, writes <code className="text-zinc-300">.instance-id</code> to disk</li>

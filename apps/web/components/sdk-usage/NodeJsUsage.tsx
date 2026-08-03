@@ -100,7 +100,7 @@ LicenseState.PENDING_VALIDATION  // "pending_validation" — cold start (402)`
                 { id: "states", label: "License States" },
         ]
 
-        const [activeSection, setActiveSection] = useState("quickstart")
+        const [activeSection, setActiveSection] = useState("installation")
 
         return (
                 <div className="flex flex-col lg:flex-row gap-8">
@@ -169,6 +169,11 @@ LicenseState.PENDING_VALIDATION  // "pending_validation" — cold start (402)`
                                                                 background validation daemon, and calls <code className="text-zinc-300">app.listen()</code>.
                                                         </p>
                                                 </div>
+                                                <CodeBlock
+                                                        code={installCommands[packageManager]}
+                                                        language="bash"
+                                                        title="Terminal"
+                                                />
                                                 <CodeBlock code={quickStartCode} language="javascript" title="index.js" />
                                                 <ul className="text-zinc-400 text-sm space-y-1 list-disc list-inside">
                                                         <li>Activates the license on first run, writes <code className="text-zinc-300">.instance-id</code> to disk</li>

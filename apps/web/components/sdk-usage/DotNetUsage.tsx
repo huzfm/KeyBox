@@ -4,7 +4,7 @@ import { useState } from "react"
 import CodeBlock from "../ui/CodeBlock"
 
 export default function DotNetUsage() {
-        const [activeSection, setActiveSection] = useState("quickstart")
+        const [activeSection, setActiveSection] = useState("installation")
 
         const quickStartCode = `using KeyboxSdk;
 
@@ -157,6 +157,11 @@ LicenseState.PendingValidation   // "pending_validation" — cold start (402)`
                                                                 validation timer.
                                                         </p>
                                                 </div>
+                                                <CodeBlock
+                                                        code="dotnet add package KeyboxSdk"
+                                                        language="bash"
+                                                        title="Terminal"
+                                                />
                                                 <CodeBlock code={quickStartCode} language="csharp" title="Program.cs" />
                                                 <ul className="text-zinc-400 text-sm space-y-1 list-disc list-inside">
                                                         <li>Activates the license on first run, writes <code className="text-zinc-300">.instance-id</code> to disk</li>

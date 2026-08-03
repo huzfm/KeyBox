@@ -1,7 +1,8 @@
 import fetch from "node-fetch"
-import { randomUUID } from "crypto"
+import { randomUUID, createHash } from "crypto"
 import { readFileSync, writeFileSync } from "fs"
 import { join } from "path"
+import { hostname, networkInterfaces } from "os"
 
 // ── Module-level daemon state ─────────────────────────────────────────────────
 let intervalId = null
@@ -165,6 +166,29 @@ function getCandidateInstanceId() {
      return readStoredInstanceId() || randomUUID()
 }
 
+// ── Machine ID ────────────────────────────────────────────────────────────────
+// Stable SHA-256 of hostname + first non-internal MAC address. The server
+// requires it on every /validate and /validate/activate call to bind a license
+// to a physical machine. Mirrors the Python and .NET SDKs.
+let machineId = null
+
+function getMachineId() {
+     if (machineId) return machineId
+     try {
+          const mac =
+               Object.values(networkInterfaces())
+                    .flat()
+                    .find((n) => n && !n.internal && n.mac && n.mac !== "00:00:00:00:00:00")
+                    ?.mac || ""
+          machineId = createHash("sha256")
+               .update(`${hostname()}-${mac}`, "utf8")
+               .digest("hex")
+     } catch {
+          machineId = "fallback-" + randomUUID().replace(/-/g, "")
+     }
+     return machineId
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 export function getLicenseState() {
@@ -208,7 +232,12 @@ export async function checkLicenseStatus({
           {
                method: "POST",
                headers: { "Content-Type": "application/json" },
-               body: JSON.stringify({ key, productName, instanceId }),
+               body: JSON.stringify({
+                    key,
+                    productName,
+                    instanceId,
+                    machineId: getMachineId(),
+               }),
           },
           fetchTimeoutMs,
      )
@@ -242,7 +271,12 @@ export async function activateLicense({
           {
                method: "POST",
                headers: { "Content-Type": "application/json" },
-               body: JSON.stringify({ key, productName, instanceId }),
+               body: JSON.stringify({
+                    key,
+                    productName,
+                    instanceId,
+                    machineId: getMachineId(),
+               }),
           },
           fetchTimeoutMs,
      )
@@ -374,7 +408,12 @@ export async function startLicenseDaemon({
                     {
                          method: "POST",
                          headers: { "Content-Type": "application/json" },
-                         body: JSON.stringify({ key, productName, instanceId }),
+                         body: JSON.stringify({
+                              key,
+                              productName,
+                              instanceId,
+                              machineId: getMachineId(),
+                         }),
                     },
                     fetchTimeoutMs,
                )

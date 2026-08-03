@@ -123,7 +123,12 @@ public static class KeyboxClient
         public bool? Valid { get; set; }
         public string? Status { get; set; }
         public string? Message { get; set; }
-        public string? ExpiresAt { get; set; }
+
+        // /validate returns expiresAt as epoch milliseconds, /validate/activate
+        // as an ISO string. A plain string? property throws on the number form,
+        // which broke every successful validation.
+        [System.Text.Json.Serialization.JsonConverter(typeof(FlexibleDateTimeConverter))]
+        public DateTime? ExpiresAt { get; set; }
     }
 
     public class LicenseStatusResult
@@ -522,19 +527,31 @@ public static class KeyboxClient
         var registered = UseKeyboxGuard(app, bypassPaths);
         try
         {
-            var componentsField = typeof(IApplicationBuilder).Assembly
-                .GetType("Microsoft.AspNetCore.Builder.ApplicationBuilder")
-                ?.GetField("_components",
-                    System.Reflection.BindingFlags.NonPublic |
-                    System.Reflection.BindingFlags.Instance);
+            // WebApplication implements IApplicationBuilder by delegating to an
+            // internal ApplicationBuilder, so the components list lives one level
+            // down. Resolve the real holder before reaching for _components.
+            const System.Reflection.BindingFlags NonPublicInstance =
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+
+            object holder = registered;
+            var inner = registered.GetType()
+                .GetProperty("ApplicationBuilder", NonPublicInstance)
+                ?.GetValue(registered);
+            if (inner != null) holder = inner;
+
+            System.Reflection.FieldInfo? componentsField = null;
+            for (var t = holder.GetType(); t != null && componentsField == null; t = t.BaseType)
+                componentsField = t.GetField("_components", NonPublicInstance);
 
             if (componentsField == null)
             {
-                Log("WARN", "Could not promote license guard — ApplicationBuilder._components not found");
+                // Not fatal: middleware registered with Use() still runs ahead of
+                // endpoint execution, so the guard gates every mapped route anyway.
+                Log("INFO", "License guard left in registration order — pipeline internals unavailable");
                 return registered;
             }
 
-            var components = componentsField.GetValue(registered) as System.Collections.IList;
+            var components = componentsField.GetValue(holder) as System.Collections.IList;
             if (components == null || components.Count < 2) return registered;
 
             var lastIdx = components.Count - 1;

@@ -479,12 +479,14 @@ def license_guard(bypass_paths=None):
     if bypass_paths:
         allowed_paths.update(bypass_paths)
 
-    async def _guard(request: Request):
+    # Starlette calls an http middleware as (request, call_next) and expects a
+    # Response back — it must forward the request itself, not return None.
+    async def _guard(request: Request, call_next):
         state = get_license_state()
         if state == LicenseState.ACTIVE:
-            return None
+            return await call_next(request)
         if _matches_bypass(request.url.path, allowed_paths):
-            return None
+            return await call_next(request)
         return JSONResponse(
             status_code=402,
             content={
