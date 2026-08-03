@@ -187,7 +187,7 @@ function setLicenseState(state) {
 export async function checkLicenseStatus({
      productName,
      key,
-     apiUrl = "http://localhost:5000",
+     apiUrl = "https://api-keybox.vercel.app",
      endpoint = "/validate",
      fetchTimeoutMs = DEFAULT_FETCH_TIMEOUT_MS,
 }) {
@@ -225,7 +225,7 @@ export async function checkLicenseStatus({
 export async function activateLicense({
      productName,
      key,
-     apiUrl = "http://localhost:5000",
+     apiUrl = "https://api-keybox.vercel.app",
      endpoint = "/validate/activate",
      fetchTimeoutMs = DEFAULT_FETCH_TIMEOUT_MS,
 }) {
@@ -291,7 +291,7 @@ const DEFAULT_INTERVAL = 900 // seconds
 export async function startLicenseDaemon({
      productName,
      key,
-     apiUrl = "http://localhost:5000",
+     apiUrl = "https://api-keybox.vercel.app",
      endpoint = "/validate",
      onRevoke,
      onRecover,

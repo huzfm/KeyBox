@@ -188,7 +188,7 @@ public static class KeyboxClient
     public static async Task<LicenseStatusResult> ActivateLicenseAsync(
         string productName,
         string key,
-        string apiUrl = "http://localhost:5000",
+        string apiUrl = "https://api-keybox.vercel.app",
         int fetchTimeoutMs = DefaultFetchTimeoutMs)
     {
         if (string.IsNullOrWhiteSpace(productName) || string.IsNullOrWhiteSpace(key))
@@ -238,7 +238,7 @@ public static class KeyboxClient
     public static async Task<LicenseStatusResult> CheckLicenseStatusAsync(
         string productName,
         string key,
-        string apiUrl = "http://localhost:5000",
+        string apiUrl = "https://api-keybox.vercel.app",
         int fetchTimeoutMs = DefaultFetchTimeoutMs)
     {
         var storedId = ReadStoredInstanceId();
@@ -272,7 +272,7 @@ public static class KeyboxClient
     public static async Task StartLicenseDaemonAsync(
         string productName,
         string key,
-        string apiUrl = "http://localhost:5000",
+        string apiUrl = "https://api-keybox.vercel.app",
         int intervalSeconds = DefaultIntervalSeconds,
         int fetchTimeoutMs = DefaultFetchTimeoutMs,
         int? offlineGraceSeconds = null,
@@ -569,7 +569,7 @@ public static class KeyboxClient
         this WebApplication app,
         string productName,
         string key,
-        string apiUrl = "http://localhost:5000",
+        string apiUrl = "https://api-keybox.vercel.app",
         int intervalSeconds = DefaultIntervalSeconds,
         int fetchTimeoutMs = DefaultFetchTimeoutMs,
         int? offlineGraceSeconds = null,

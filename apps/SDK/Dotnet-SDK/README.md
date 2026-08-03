@@ -88,7 +88,7 @@ Extension method on `WebApplication`. Registers the license guard, activates on 
 await app.RunProtectedAsync(
     productName: "MyApp",                     // Product identifier shown in KeyBox (required)
     key: Environment.GetEnvironmentVariable("KEYBOX_LICENSE_KEY")!,  // License key (required)
-    apiUrl: "http://localhost:5000",           // KeyBox server URL (default)
+    apiUrl: "https://api-keybox.vercel.app",   // KeyBox server URL (default)
     intervalSeconds: 900,                     // Daemon interval, default 900 (15 min)
     fetchTimeoutMs: 10_000,                   // Per-request network timeout, default 10 000 ms
     offlineGraceSeconds: null,                // How long to stay ACTIVE offline, default max(2×interval, 1800)
